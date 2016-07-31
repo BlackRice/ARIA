@@ -1,4 +1,0 @@
-sceneSetups:
-- path: Assets/Scenes/ARIACompany.unity
-  isLoaded: 1
-  isActive: 1
