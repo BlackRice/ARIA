@@ -399,6 +399,14 @@ ModelImporter:
     100782: WindowRing05
     100784: WindowRing_01
     100786: WindowRing_03
+    100788: Cube
+    100790: Cube.001
+    100792: Cube.002
+    100794: Fireplace_Chimney_12.001
+    100796: GondolaStair_17.001
+    100798: RoofWindowFrame
+    100800: WindowBigBubble
+    100802: WindowSmallBubble2ndFloor
     400000: 1f_FrontCounter
     400002: 1st_Columns
     400004: 1st_WindowHingeB_R_01
@@ -793,6 +801,14 @@ ModelImporter:
     400782: WindowRing05
     400784: WindowRing_01
     400786: WindowRing_03
+    400788: Cube
+    400790: Cube.001
+    400792: Cube.002
+    400794: Fireplace_Chimney_12.001
+    400796: GondolaStair_17.001
+    400798: RoofWindowFrame
+    400800: WindowBigBubble
+    400802: WindowSmallBubble2ndFloor
     2300000: 1f_FrontCounter
     2300002: 1st_Columns
     2300004: 1st_WindowHingeB_R_01
@@ -1186,6 +1202,14 @@ ModelImporter:
     2300780: WindowRing05
     2300782: WindowRing_01
     2300784: WindowRing_03
+    2300786: Cube
+    2300788: Cube.001
+    2300790: Cube.002
+    2300792: Fireplace_Chimney_12.001
+    2300794: GondolaStair_17.001
+    2300796: RoofWindowFrame
+    2300798: WindowBigBubble
+    2300800: WindowSmallBubble2ndFloor
     3300000: 1f_FrontCounter
     3300002: 1st_Columns
     3300004: 1st_WindowHingeB_R_01
@@ -1579,6 +1603,14 @@ ModelImporter:
     3300780: WindowRing05
     3300782: WindowRing_01
     3300784: WindowRing_03
+    3300786: Cube
+    3300788: Cube.001
+    3300790: Cube.002
+    3300792: Fireplace_Chimney_12.001
+    3300794: GondolaStair_17.001
+    3300796: RoofWindowFrame
+    3300798: WindowBigBubble
+    3300800: WindowSmallBubble2ndFloor
     4300000: Stair3rd_01
     4300002: 2nd_Ground
     4300004: Ground_1st
@@ -1972,6 +2004,14 @@ ModelImporter:
     4300780: GondolaPaddle_11
     4300782: GondolaPaddleHolder_11
     4300784: FloorSupport
+    4300786: Fireplace_Chimney_12.001
+    4300788: Cube.002
+    4300790: Cube.001
+    4300792: Cube
+    4300794: GondolaStair_17.001
+    4300796: RoofWindowFrame
+    4300798: WindowSmallBubble2ndFloor
+    4300800: WindowBigBubble
     7400000: Take 001
     9500000: //RootNode
   materials:

@@ -332,6 +332,10 @@ ModelImporter:
     100648: WindowRing05
     100650: WindowRing_01
     100652: WindowRing_03
+    100654: RoofWindowFrame
+    100656: Fireplace_Chimney_12_001
+    100658: WindowBigBubble
+    100660: WindowSmallBubble2ndFloor
     400000: 1f_FrontCounter
     400002: 1st_Columns
     400004: 1st_WindowsFrameB_01
@@ -659,6 +663,10 @@ ModelImporter:
     400648: WindowRing05
     400650: WindowRing_01
     400652: WindowRing_03
+    400654: RoofWindowFrame
+    400656: Fireplace_Chimney_12_001
+    400658: WindowBigBubble
+    400660: WindowSmallBubble2ndFloor
     2300000: 1f_FrontCounter
     2300002: 1st_Columns
     2300004: 1st_WindowsFrameB_01
@@ -985,6 +993,10 @@ ModelImporter:
     2300646: WindowRing05
     2300648: WindowRing_01
     2300650: WindowRing_03
+    2300652: RoofWindowFrame
+    2300654: Fireplace_Chimney_12_001
+    2300656: WindowBigBubble
+    2300658: WindowSmallBubble2ndFloor
     3300000: 1f_FrontCounter
     3300002: 1st_Columns
     3300004: 1st_WindowsFrameB_01
@@ -1311,6 +1323,10 @@ ModelImporter:
     3300646: WindowRing05
     3300648: WindowRing_01
     3300650: WindowRing_03
+    3300652: RoofWindowFrame
+    3300654: Fireplace_Chimney_12_001
+    3300656: WindowBigBubble
+    3300658: WindowSmallBubble2ndFloor
     4300000: Cube_002
     4300002: Cube_001
     4300004: Cube
@@ -1637,6 +1653,10 @@ ModelImporter:
     4300646: 2nd_Ground
     4300648: Stair3rd_01
     4300650: Ground_1st
+    4300652: RoofWindowFrame
+    4300654: Fireplace_Chimney_12_001
+    4300656: WindowSmallBubble2ndFloor
+    4300658: WindowBigBubble
     7400000: Default Take
     9500000: //RootNode
   materials:
