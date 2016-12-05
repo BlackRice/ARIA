@@ -102,6 +102,7 @@
 
 			o.Albedo = diffuse;
 			o.Emission = 0;
+			o.Normal = normal;
 			o.Metallic = metallic;
 			o.Smoothness = smoothness;
 
