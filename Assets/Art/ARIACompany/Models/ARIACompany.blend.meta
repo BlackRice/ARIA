@@ -338,6 +338,12 @@ ModelImporter:
     100660: WindowSmallBubble2ndFloor
     100662: Ground_1st_001
     100664: Ground_1st_Decals01
+    100666: Fireplace_Chimney_18_001
+    100668: Fireplace_Chimney_Interior
+    100670: Fireplace_Chimney_outside
+    100672: FirePlace_Protector
+    100674: Wall_2nd_3rd_001
+    100676: Window01
     400000: 1f_FrontCounter
     400002: 1st_Columns
     400004: 1st_WindowsFrameB_01
@@ -671,6 +677,12 @@ ModelImporter:
     400660: WindowSmallBubble2ndFloor
     400662: Ground_1st_001
     400664: Ground_1st_Decals01
+    400666: Fireplace_Chimney_18_001
+    400668: Fireplace_Chimney_Interior
+    400670: Fireplace_Chimney_outside
+    400672: FirePlace_Protector
+    400674: Wall_2nd_3rd_001
+    400676: Window01
     2300000: 1f_FrontCounter
     2300002: 1st_Columns
     2300004: 1st_WindowsFrameB_01
@@ -1003,6 +1015,12 @@ ModelImporter:
     2300658: WindowSmallBubble2ndFloor
     2300660: Ground_1st_001
     2300662: Ground_1st_Decals01
+    2300664: Fireplace_Chimney_18_001
+    2300666: Fireplace_Chimney_Interior
+    2300668: Fireplace_Chimney_outside
+    2300670: FirePlace_Protector
+    2300672: Wall_2nd_3rd_001
+    2300674: Window01
     3300000: 1f_FrontCounter
     3300002: 1st_Columns
     3300004: 1st_WindowsFrameB_01
@@ -1335,6 +1353,12 @@ ModelImporter:
     3300658: WindowSmallBubble2ndFloor
     3300660: Ground_1st_001
     3300662: Ground_1st_Decals01
+    3300664: Fireplace_Chimney_18_001
+    3300666: Fireplace_Chimney_Interior
+    3300668: Fireplace_Chimney_outside
+    3300670: FirePlace_Protector
+    3300672: Wall_2nd_3rd_001
+    3300674: Window01
     4300000: Cube_002
     4300002: Cube_001
     4300004: Cube
@@ -1667,6 +1691,12 @@ ModelImporter:
     4300658: WindowBigBubble
     4300660: Ground_1st_001
     4300662: Ground_1st_Decals01
+    4300664: Fireplace_Chimney_18_001
+    4300666: FirePlace_Protector
+    4300668: Fireplace_Chimney_outside
+    4300670: Fireplace_Chimney_Interior
+    4300672: Wall_2nd_3rd_001
+    4300674: Window01
     7400000: Default Take
     9500000: //RootNode
   materials:

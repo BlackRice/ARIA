@@ -28,12 +28,12 @@
 		LOD 200
 		
 		CGPROGRAM
-		#pragma surface surf Standard fullforwardshadows vertex:vert
+		#pragma surface surf Standard fullforwardshadows
 		#pragma target 3.0
 
 		struct Input {
 			float2 uv_MainTex;
-			float4 color;
+			float4 color:Color;
 		};
 
 		sampler2D _MainTex;
@@ -59,10 +59,7 @@
 		float4 _DarkenColor;
 		
 
-		void vert(inout appdata_full v, out Input o) {
-			UNITY_INITIALIZE_OUTPUT(Input, o);
-			o.color = v.color;
-		}
+		
 
 		void surf(Input IN, inout SurfaceOutputStandard o) {
 			float4 mainTexSample = tex2D(_MainTex, IN.uv_MainTex);
@@ -115,4 +112,5 @@
 		}
 		ENDCG
 	}
+		FallBack "Diffuse"
 }
