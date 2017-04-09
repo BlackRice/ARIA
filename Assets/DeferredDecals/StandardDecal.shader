@@ -1,4 +1,6 @@
-﻿Shader "Decal/StandardDecal"
+﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
+Shader "Decal/StandardDecal"
 {
     Properties
     {
@@ -70,7 +72,7 @@
         float4 pos							: SV_POSITION;
         float4 tex							: TEXCOORD0;
         half3 eyeVec 						: TEXCOORD1;
-        half4 tangentToWorldAndParallax[3]	: TEXCOORD2;	// [3x3:tangentToWorld | 1x3:viewDirForParallax]
+        half4 tangentToWorldAndPackedData[3]	: TEXCOORD2;	// [3x3:tangentToWorld | 1x3:viewDirForParallax]
         half4 ambientOrLightmapUV			: TEXCOORD5;	// SH or Lightmap UVs			
 #if UNITY_SPECCUBE_BOX_PROJECTION
         float3 posWorld						: TEXCOORD6;
@@ -118,7 +120,7 @@
 #if UNITY_SPECCUBE_BOX_PROJECTION
         o.posWorld = posWorld;
 #endif
-        o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
+        o.pos = UnityObjectToClipPos(v.vertex);
         o.tex = float4(v.uv0, 0, 0);
         o.eyeVec = NormalizePerVertexNormal(posWorld.xyz - _WorldSpaceCameraPos);
         float3 normalWorld = UnityObjectToWorldNormal(v.normal);
@@ -126,13 +128,13 @@
         float4 tangentWorld = float4(UnityObjectToWorldDir(v.tangent.xyz), v.tangent.w);
 
         float3x3 tangentToWorld = CreateTangentToWorldPerVertex(normalWorld, tangentWorld.xyz, tangentWorld.w);
-        o.tangentToWorldAndParallax[0].xyz = tangentToWorld[0];
-        o.tangentToWorldAndParallax[1].xyz = tangentToWorld[1];
-        o.tangentToWorldAndParallax[2].xyz = tangentToWorld[2];
+        o.tangentToWorldAndPackedData[0].xyz = tangentToWorld[0];
+        o.tangentToWorldAndPackedData[1].xyz = tangentToWorld[1];
+        o.tangentToWorldAndPackedData[2].xyz = tangentToWorld[2];
 #else
-        o.tangentToWorldAndParallax[0].xyz = 0;
-        o.tangentToWorldAndParallax[1].xyz = 0;
-        o.tangentToWorldAndParallax[2].xyz = normalWorld;
+        o.tangentToWorldAndPackedData[0].xyz = 0;
+        o.tangentToWorldAndPackedData[1].xyz = 0;
+        o.tangentToWorldAndPackedData[2].xyz = normalWorld;
 #endif
 
         o.ambientOrLightmapUV = 0;
@@ -148,9 +150,9 @@
 #ifdef _PARALLAXMAP
         TANGENT_SPACE_ROTATION;
         half3 viewDirForParallax = mul(rotation, ObjSpaceViewDir(v.vertex));
-        o.tangentToWorldAndParallax[0].w = viewDirForParallax.x;
-        o.tangentToWorldAndParallax[1].w = viewDirForParallax.y;
-        o.tangentToWorldAndParallax[2].w = viewDirForParallax.z;
+        o.tangentToWorldAndPackedData[0].w = viewDirForParallax.x;
+        o.tangentToWorldAndPackedData[1].w = viewDirForParallax.y;
+        o.tangentToWorldAndPackedData[2].w = viewDirForParallax.z;
 #endif
 
 #if UNITY_OPTIMIZE_TEXCUBELOD
@@ -198,7 +200,7 @@
 
         float3 backNormal = outNormal.xyz*2-1;
 
-        float3 parallaxViewDir = IN_VIEWDIR4PARALLAX(i);// float3(i.tangentToWorldAndParallax[0].w, i.tangentToWorldAndParallax[1].w, i.tangentToWorldAndParallax[2].w);
+        float3 parallaxViewDir = IN_VIEWDIR4PARALLAX(i); // float3(i.tangentToWorldAndParallax[0].w, i.tangentToWorldAndParallax[1].w, i.tangentToWorldAndParallax[2].w);
         float4 heightSample = tex2D(_ParallaxMap, i.tex.xy);
         float2 uv = i.tex.xy+ParallaxOffset1Step(heightSample.r, _Parallax, parallaxViewDir);
 
@@ -249,11 +251,11 @@
         s.diffColor = diffColor;
         s.specColor = specColor;
         s.oneMinusReflectivity = oneMinusReflectivity;
-        s.oneMinusRoughness = metallicSmoothnessSample.a;
+        s.smoothness = metallicSmoothnessSample.a;
         s.normalWorld = worldNormal;
 
         // no analytic lights in this pass
-        UnityLight dummyLight = DummyLight(s.normalWorld);
+        UnityLight dummyLight = DummyLight();
         half atten = 1;
 
         // only GI
@@ -266,8 +268,8 @@
 
         UnityGI gi = FragmentGI(s, occlusion, i.ambientOrLightmapUV, atten, dummyLight, sampleReflectionsInDeferred);
 
-        half3 color = UNITY_BRDF_PBS(s.diffColor, s.specColor, s.oneMinusReflectivity, s.oneMinusRoughness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect).rgb;
-        color += UNITY_BRDF_GI(s.diffColor, s.specColor, s.oneMinusReflectivity, s.oneMinusRoughness, s.normalWorld, -s.eyeVec, occlusion, gi);
+        half3 color = UNITY_BRDF_PBS(s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect).rgb;
+        color += UNITY_BRDF_GI(s.diffColor, s.specColor, s.oneMinusReflectivity, s.smoothness, s.normalWorld, -s.eyeVec, occlusion, gi);
 
 #ifdef _EMISSION
         color += Emission(i.tex.xy);
@@ -330,7 +332,7 @@
     V2F vertDecalDeferred(appdata_full v)
     {
         V2F o;
-        o.pos = mul(UNITY_MATRIX_MVP, v.vertex);
+        o.pos = UnityObjectToClipPos(v.vertex);
         o.screenUV = ComputeScreenPos(o.pos);
         return o;
     }

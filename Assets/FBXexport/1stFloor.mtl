@@ -1,0 +1,24 @@
+# Blender MTL File: 'ARIACompany.blend'
+# Material Count: 2
+
+newmtl Concrete01
+Ns 19.607843
+Ka 1.000000 1.000000 1.000000
+Kd 0.470588 0.470588 0.470588
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 1
+map_Kd C:\Users\BlackRice\Desktop\GitHub\ARIA\Assets\Art\ARIACompany\Concrete01\Concrete01_basecolor.tga
+
+newmtl WoodFloor01
+Ns 96.078431
+Ka 1.000000 1.000000 1.000000
+Kd 0.261085 0.134197 0.028266
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd C:\Users\BlackRice\Desktop\GitHub\ARIA\Assets\Art\ARIACompany\Concrete01\Concrete01_basecolor.tga

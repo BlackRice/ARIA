@@ -1,3 +1,5 @@
+// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
 // Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
 
 Shader "Custom/CurtainLightProbe" {
@@ -62,7 +64,7 @@ Shader "Custom/CurtainLightProbe" {
 			v2f vert(appdata_full v)
 			{
 				v2f o;
-				o.pos = mul (UNITY_MATRIX_MVP, v.vertex);
+				o.pos = UnityObjectToClipPos (v.vertex);
 				o.wNormal = normalize(mul((float3x3)unity_ObjectToWorld, v.normal));
 				return o;
 			}
