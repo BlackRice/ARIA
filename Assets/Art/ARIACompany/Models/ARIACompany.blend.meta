@@ -348,6 +348,7 @@ ModelImporter:
     100680: 1stCeilingTrims
     100682: 2nd_SideTrims
     100684: 2nd_CornerTrims
+    100686: Roof01Smooth
     400000: 1f_FrontCounter
     400002: 1st_Columns
     400004: 1st_WindowsFrameB_01
@@ -691,6 +692,7 @@ ModelImporter:
     400680: 1stCeilingTrims
     400682: 2nd_SideTrims
     400684: 2nd_CornerTrims
+    400686: Roof01Smooth
     2300000: 1f_FrontCounter
     2300002: 1st_Columns
     2300004: 1st_WindowsFrameB_01
@@ -1033,6 +1035,7 @@ ModelImporter:
     2300678: 1stCeilingTrims
     2300680: 2nd_SideTrims
     2300682: 2nd_CornerTrims
+    2300684: Roof01Smooth
     3300000: 1f_FrontCounter
     3300002: 1st_Columns
     3300004: 1st_WindowsFrameB_01
@@ -1375,6 +1378,7 @@ ModelImporter:
     3300678: 1stCeilingTrims
     3300680: 2nd_SideTrims
     3300682: 2nd_CornerTrims
+    3300684: Roof01Smooth
     4300000: Cube_002
     4300002: Cube_001
     4300004: Cube
@@ -1717,6 +1721,7 @@ ModelImporter:
     4300678: 2nd_SideTrims
     4300680: 1stCeilingTrims
     4300682: 2nd_CornerTrims
+    4300684: Roof01Smooth
     7400000: Default Take
     9500000: //RootNode
   materials:
@@ -1729,6 +1734,8 @@ ModelImporter:
     resampleCurves: 1
     optimizeGameObjects: 0
     motionNodeName: 
+    rigImportErrors: 
+    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -1765,6 +1772,7 @@ ModelImporter:
   importAnimation: 1
   copyAvatar: 0
   humanDescription:
+    serializedVersion: 2
     human: []
     skeleton: []
     armTwist: 0.5
@@ -1775,7 +1783,10 @@ ModelImporter:
     legStretch: 0.05
     feetSpacing: 0
     rootMotionBoneName: 
+    rootMotionBoneRotation: {x: 0, y: 0, z: 0, w: 1}
     hasTranslationDoF: 0
+    hasExtraRoot: 0
+    skeletonHasParents: 0
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   animationType: 2
   humanoidOversampling: 1
