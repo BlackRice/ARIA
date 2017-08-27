@@ -17,7 +17,8 @@ namespace AmplifyShaderEditor
 			LOD1,
 			LOD2,
 			LOD3,
-			LOD4
+			LOD4,
+			LOD5
 		}
 
 		private NodeLOD m_lodLevel = NodeLOD.LOD0;
@@ -35,6 +36,7 @@ namespace AmplifyShaderEditor
 
 		public delegate void NodeEvent( ParentNode node );
 		public event NodeEvent OnNodeEvent = null;
+		public event NodeEvent OnNodeRemovedEvent;
 
 		public delegate void DuplicateEvent();
 		public event DuplicateEvent OnDuplicateEvent;
@@ -389,6 +391,8 @@ namespace AmplifyShaderEditor
 				}
 			}
 
+			OnNodeRemovedEvent = null;
+
 			m_masterNodeId = Constants.INVALID_NODE_ID;
 			m_validNodeId = 0;
 			m_instancePropertyCount = 0;
@@ -680,9 +684,14 @@ namespace AmplifyShaderEditor
 				newLevel = NodeLOD.LOD3;
 				referenceValue = 0;
 			}
-			else
+			else if ( drawInfo.InvertedZoom > 0.07f )
 			{
 				newLevel = NodeLOD.LOD4;
+				referenceValue = 0;
+			}
+			else
+			{
+				newLevel = NodeLOD.LOD5;
 				referenceValue = 0;
 			}
 
@@ -807,6 +816,7 @@ namespace AmplifyShaderEditor
 					break;
 					case NodeLOD.LOD3:
 					case NodeLOD.LOD4:
+					case NodeLOD.LOD5:
 					{
 						UIUtils.MainSkin.textField.border.left = 0;
 						UIUtils.MainSkin.textField.border.right = 0;
@@ -891,9 +901,12 @@ namespace AmplifyShaderEditor
 			int visibleCount = m_visibleNodes.Count;
 			for ( int i = visibleCount - 1; i >= 0; i-- )
 			{
-				bool showing = m_visibleNodes[ i ].ShowTooltip( drawInfo );
-				if ( showing )
-					break;
+				if ( !m_visibleNodes[ i ].IsMoving )
+				{
+					bool showing = m_visibleNodes[ i ].ShowTooltip( drawInfo );
+					if ( showing )
+						break;
+				}
 			}
 
 			//if( OnTooltip != null )
@@ -1067,15 +1080,15 @@ namespace AmplifyShaderEditor
 			}
 
 			//Draw selected wire
-			if ( UIUtils.ValidReferences() )
+			if ( m_parentWindow.WireReferenceUtils.ValidReferences() )
 			{
-				if ( UIUtils.InputPortReference.IsValid )
+				if ( m_parentWindow.WireReferenceUtils.InputPortReference.IsValid )
 				{
-					InputPort inputPort = GetNode( UIUtils.InputPortReference.NodeId ).GetInputPortByUniqueId( UIUtils.InputPortReference.PortId );
+					InputPort inputPort = GetNode( m_parentWindow.WireReferenceUtils.InputPortReference.NodeId ).GetInputPortByUniqueId( m_parentWindow.WireReferenceUtils.InputPortReference.PortId );
 					Vector3 endPos = Vector3.zero;
-					if ( UIUtils.SnapEnabled )
+					if ( m_parentWindow.WireReferenceUtils.SnapEnabled )
 					{
-						Vector2 pos = ( UIUtils.SnapPosition + drawInfo.CameraOffset ) * drawInfo.InvertedZoom;
+						Vector2 pos = ( m_parentWindow.WireReferenceUtils.SnapPosition + drawInfo.CameraOffset ) * drawInfo.InvertedZoom;
 						endPos = new Vector3( pos.x, pos.y ) + UIUtils.ScaledPortsDelta;
 					}
 					else
@@ -1087,13 +1100,13 @@ namespace AmplifyShaderEditor
 					DrawBezier( drawInfo.InvertedZoom, endPos, startPos, inputPort.DataType, inputPort.DataType, WireStatus.Default, wireTex );
 				}
 
-				if ( UIUtils.OutputPortReference.IsValid )
+				if ( m_parentWindow.WireReferenceUtils.OutputPortReference.IsValid )
 				{
-					OutputPort outputPort = GetNode( UIUtils.OutputPortReference.NodeId ).GetOutputPortByUniqueId( UIUtils.OutputPortReference.PortId );
+					OutputPort outputPort = GetNode( m_parentWindow.WireReferenceUtils.OutputPortReference.NodeId ).GetOutputPortByUniqueId( m_parentWindow.WireReferenceUtils.OutputPortReference.PortId );
 					Vector3 endPos = Vector3.zero;
-					if ( UIUtils.SnapEnabled )
+					if ( m_parentWindow.WireReferenceUtils.SnapEnabled )
 					{
-						Vector2 pos = ( UIUtils.SnapPosition + drawInfo.CameraOffset ) * drawInfo.InvertedZoom;
+						Vector2 pos = ( m_parentWindow.WireReferenceUtils.SnapPosition + drawInfo.CameraOffset ) * drawInfo.InvertedZoom;
 						endPos = new Vector3( pos.x, pos.y ) + UIUtils.ScaledPortsDelta;
 					}
 					else
@@ -1196,7 +1209,6 @@ namespace AmplifyShaderEditor
 			return boundBox;
 		}
 
-
 		public void DrawBezierBoundingBox()
 		{
 			for ( int i = 0; i < m_wireBezierCount; i++ )
@@ -1204,7 +1216,6 @@ namespace AmplifyShaderEditor
 				m_bezierReferences[ i ].DebugDraw();
 			}
 		}
-
 
 		public WireBezierReference GetWireBezierInPos( Vector2 position )
 		{
@@ -1232,6 +1243,21 @@ namespace AmplifyShaderEditor
 
 		public void MoveSelectedNodes( Vector2 delta, bool snap = false )
 		{
+			//bool validMovement = delta.magnitude > 0.001f;
+			//if ( validMovement )
+			//{
+			//	Undo.RegisterCompleteObjectUndo( ParentWindow, Constants.UndoMoveNodesId );
+			//	for ( int i = 0; i < m_selectedNodes.Count; i++ )
+			//	{
+			//		if ( !m_selectedNodes[ i ].MovingInFrame )
+			//		{
+			//			Undo.RecordObject( m_selectedNodes[ i ], Constants.UndoMoveNodesId );
+			//			m_selectedNodes[ i ].Move( delta, snap );
+			//		}
+			//	}
+			//	IsDirty = true;
+			//}
+
 			bool performUndo = delta.magnitude > 0.01f;
 			if ( performUndo )
 				Undo.RegisterCompleteObjectUndo( ParentWindow, Constants.UndoMoveNodesId );
@@ -1352,7 +1378,7 @@ namespace AmplifyShaderEditor
 					{
 						inputPort.DummyRemove();
 						outputPort.DummyRemove();
-						UIUtils.InvalidateReferences();
+						m_parentWindow.WireReferenceUtils.InvalidateReferences();
 						UIUtils.ShowMessage( "Infinite Loop detected" );
 						Event.current.Use();
 						return;
@@ -1825,6 +1851,10 @@ namespace AmplifyShaderEditor
 					Undo.RegisterCompleteObjectUndo( ParentWindow, Constants.UndoDeleteNodeId );
 					Undo.RecordObject( node, Constants.UndoDeleteNodeId );
 				}
+
+				if ( OnNodeRemovedEvent != null )
+					OnNodeRemovedEvent( node );
+
 				m_nodes.Remove( node );
 				m_nodesDict.Remove( node.UniqueId );
 				node.Destroy();
@@ -1899,6 +1929,7 @@ namespace AmplifyShaderEditor
 			for ( int i = 0; i < m_nodes.Count; i++ )
 			{
 				if ( !m_nodes[ i ].Selected && selectionArea.Overlaps( m_nodes[ i ].Position, true ) )
+				//if ( !m_nodes[ i ].Selected && selectionArea.Includes( m_nodes[ i ].Position ) )
 				{
 					m_nodes[ i ].Selected = true;
 					AddToSelectedNodes( m_nodes[ i ] );
@@ -2148,7 +2179,7 @@ namespace AmplifyShaderEditor
 			// this is checked on the inverse order to give priority to nodes that are drawn on top  ( last on the list )
 			for ( int i = m_nodes.Count - 1; i > -1; i-- )
 			{
-				if ( m_nodes[ i ].GlobalPosition.Contains( pos ) )
+				if ( m_nodes[ i ].Contains( pos ) )
 				{
 					if ( checkForRMBIgnore )
 					{
@@ -2243,7 +2274,7 @@ namespace AmplifyShaderEditor
 		{
 			if ( CurrentMasterNode != null )
 			{
-				CurrentMasterNode.SetupNodeCategories( );
+				CurrentMasterNode.SetupNodeCategories();
 				int count = m_nodes.Count;
 				for ( int i = 0; i < count; i++ )
 				{
@@ -2400,6 +2431,15 @@ namespace AmplifyShaderEditor
 			IOUtils.CurrentCanvasMode = NodeAvailability.ShaderFunction;
 
 			newOutputNode.IsMainOutputNode = true;
+		}
+
+		public void RefreshExternalReferences()
+		{
+			int count = m_nodes.Count;
+			for ( int i = 0; i < count; i++ )
+			{
+				m_nodes[ i ].RefreshExternalReferences();
+			}
 		}
 
 		public Vector2 SelectedNodesCentroid

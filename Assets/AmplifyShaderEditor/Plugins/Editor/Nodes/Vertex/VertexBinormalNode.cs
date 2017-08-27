@@ -9,7 +9,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "World Bitangent", "Surface Standard Inputs", "Per pixel world bitangent vector" )]
+	[NodeAttributes( "World Bitangent", "Surface Data", "Per pixel world bitangent vector" )]
 	public sealed class VertexBinormalNode : ParentNode
 	{
 		//private const string WorldBiTangentDefFrag = "WorldNormalVector( {0}, float3(0,1,0) )";

@@ -10,12 +10,9 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "World Tangent", "Surface Standard Inputs", "Per pixel world tangent vector", null, KeyCode.None, true, false, null, null, true )]
+	[NodeAttributes( "World Tangent", "Surface Data", "Per pixel world tangent vector", null, KeyCode.None, true, false, null, null, true )]
 	public sealed class VertexTangentNode : ParentNode
 	{
-		//private const string WorldTangentDefFrag = "WorldNormalVector( {0}, float3(1,0,0) )";
-		//private const string WorldTangentDefVert = "UnityObjectToWorldDir( {0}.tangent.xyz )";
-
 		protected override void CommonInit( int uniqueId )
 		{
 			base.CommonInit( uniqueId );

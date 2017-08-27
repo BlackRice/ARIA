@@ -8,7 +8,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Component Mask", "Misc", "Mask certain channels from vectors/color components" )]
+	[NodeAttributes( "Component Mask", "Vector Operators", "Mask certain channels from vectors/color components" )]
 	public sealed class ComponentMaskNode : ParentNode
 	{
 		private const string OutputLocalVarName = "componentMask";
@@ -190,7 +190,10 @@ namespace AmplifyShaderEditor
 					m_selection[ i ] = EditorGUILayoutToggleLeft( m_labels[i], m_selection[ i ] );
 					m_labels[ i ] = UIUtils.GetComponentForPosition( i, m_inputPorts[ 0 ].DataType ).ToUpper();
 					if ( m_selection[ i ] )
+					{
 						activeCount += 1;
+					}
+
 				}
 			}
 
@@ -214,6 +217,59 @@ namespace AmplifyShaderEditor
 			//{
 			//	//MarkForPreviewUpdate();
 			//}
+		}
+
+		public override void Draw( DrawInfo drawInfo )
+		{
+			base.Draw( drawInfo );
+			int count = 0;
+			string additionalText = string.Empty;
+			switch ( m_inputPorts[ 0 ].DataType )
+			{
+				case WirePortDataType.FLOAT4:
+				case WirePortDataType.OBJECT:
+				case WirePortDataType.COLOR:
+				{
+					count = 4;
+				}
+				break;
+				case WirePortDataType.FLOAT3:
+				{
+					count = 3;
+				}
+				break;
+				case WirePortDataType.FLOAT2:
+				{
+					count = 2;
+				}
+				break;
+				case WirePortDataType.FLOAT:
+				case WirePortDataType.INT:
+				{
+					count = 0;
+				}
+				break;
+				case WirePortDataType.FLOAT3x3:
+				case WirePortDataType.FLOAT4x4:
+				{ }
+				break;
+			}
+
+			if ( count > 0 )
+			{
+				for ( int i = 0; i < count; i++ )
+				{
+					if ( m_selection[ i ] )
+					{
+						additionalText += UIUtils.GetComponentForPosition( i, m_inputPorts[ 0 ].DataType ).ToUpper();
+					}
+				}
+			}
+
+			if ( additionalText.Length > 0 )
+				SetAdditonalTitleText( "Value( " + additionalText + " )" );
+			else
+				SetAdditonalTitleText( string.Empty );
 		}
 
 		public override string GenerateShaderForOutput( int outputId, ref MasterNodeDataCollector dataCollector, bool ignoreLocalVar )

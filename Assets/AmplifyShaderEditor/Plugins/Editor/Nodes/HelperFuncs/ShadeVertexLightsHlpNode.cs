@@ -5,7 +5,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Shade Vertex Lights", "Vertex-lit", "Computes illumination from four per-vertex lights and ambient, given object space position & normal" )]
+	[NodeAttributes( "Shade Vertex Lights", "Light", "Computes illumination from four per-vertex lights and ambient, given object space position & normal" )]
 	public sealed class ShadeVertexLightsHlpNode : HelperParentNode
 	{
 		protected override void CommonInit( int uniqueId )

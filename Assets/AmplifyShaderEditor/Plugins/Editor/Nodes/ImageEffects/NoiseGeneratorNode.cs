@@ -15,7 +15,7 @@ namespace AmplifyShaderEditor
 	};
 
 	[Serializable]
-	[NodeAttributes( "Noise Generator", "Image Effects", "Collection of procedural noise generators" )]
+	[NodeAttributes( "Noise Generator", "Miscellaneous", "Collection of procedural noise generators" )]
 	public sealed class NoiseGeneratorNode : ParentNode
 	{
 		private const string TypeLabelStr = "Type";

@@ -6,7 +6,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Switch by Face", "Various", "Switch which automaticaly uses a Face variable to select which input to use" )]
+	[NodeAttributes( "Switch by Face", "Miscellaneous", "Switch which automaticaly uses a Face variable to select which input to use" )]
 	public class SwitchByFaceNode : DynamicTypeNode
 	{
 		private const string SwitchOp = "((({0}>0)?({1}):({2})))";

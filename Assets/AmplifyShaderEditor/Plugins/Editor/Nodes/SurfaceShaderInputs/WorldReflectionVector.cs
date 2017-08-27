@@ -6,7 +6,7 @@ using UnityEngine;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "World Reflection", "Surface Standard Inputs", "Per pixel world reflection vector", null, KeyCode.R )]
+	[NodeAttributes( "World Reflection", "Surface Data", "Per pixel world reflection vector, accepts a <b>Normal</b> vector in tangent space (ie: normalmap)", null, KeyCode.R )]
 	public sealed class WorldReflectionVector : ParentNode
 	{
 		private int m_cachedPropertyId = -1;

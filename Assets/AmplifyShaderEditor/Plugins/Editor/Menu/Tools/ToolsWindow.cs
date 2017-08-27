@@ -88,17 +88,19 @@ namespace AmplifyShaderEditor
 		private Rect m_areaRight = new Rect( 0, 0, 75, 40 );
 		private Rect m_boxRect;
 		private Rect m_borderRect;
-
-		private bool m_searchBarVisible = false;
-		private Rect m_searchBarSize;
-		private string m_searchBarValue = string.Empty;
-		private const string SearchBarId = "ASE_SEARCH_BAR";
-
-		private List<ParentNode> m_selectedNodes = new List<ParentNode>();
-		private bool m_refreshList = false;
+		
 		public const double InactivityRefreshTime = 0.25;
 		private int m_currentSelected = 0;
 
+		//Search Bar
+		private const string SearchBarId = "ASE_SEARCH_BAR";
+		private bool m_searchBarVisible = false;
+		private bool m_selectSearchBarTextfield = false;
+		private bool m_refreshSearchResultList = false;
+
+		private Rect m_searchBarSize;
+		private string m_searchBarValue = string.Empty;
+		private List<ParentNode> m_searchResultNodes = new List<ParentNode>();
 
 		// width and height are between [0,1] and represent a percentage of the total screen area
 		public ToolsWindow( AmplifyShaderEditorWindow parentWindow ) : base( parentWindow, 0, 0, 0, 64, "Tools", MenuAnchor.TOP_LEFT, MenuAutoSize.NONE )
@@ -126,14 +128,7 @@ namespace AmplifyShaderEditor
 			openSourceCodeButton.ToolButtonPressedEvt += OnButtonPressedEvent;
 			openSourceCodeButton.AddState( IOUtils.OpenSourceCodeONGUID );
 			m_list[ ( int ) ToolButtonType.OpenSourceCode ] = openSourceCodeButton;
-
-
-
-			//ToolsMenuButton selectShaderButton = new ToolsMenuButton( eToolButtonType.SelectShader, 0, 0, -1, -1, "UI/Buttons/ShaderSelectOFF", string.Empty, "Select current shader.", 140 );
-			//selectShaderButton.ToolButtonPressedEvt += OnButtonPressedEvent;
-			//selectShaderButton.AddState( "UI/Buttons/ShaderSelectON" );
-			//_list[ ( int ) eToolButtonType.SelectShader ] = selectShaderButton;
-
+			
 			m_focusOnMasterNodeButton = new ToolsMenuButton( m_parentWindow, ToolButtonType.FocusOnMasterNode, 0, 0, -1, -1, IOUtils.FocusNodeGUID, string.Empty, "Focus on active master node.", -1, false );
 			m_focusOnMasterNodeButton.ToolButtonPressedEvt += OnButtonPressedEvent;
 
@@ -159,8 +154,8 @@ namespace AmplifyShaderEditor
 			}
 			m_list = null;
 
-			m_selectedNodes.Clear();
-			m_selectedNodes = null;
+			m_searchResultNodes.Clear();
+			m_searchResultNodes = null;
 
 			m_focusOnMasterNodeButton.Destroy();
 			m_focusOnMasterNodeButton = null;
@@ -206,24 +201,24 @@ namespace AmplifyShaderEditor
 			{
 				if ( Event.current.type == EventType.keyDown )
 				{
+					string currentFocus = GUI.GetNameOfFocusedControl();
 					KeyCode keyCode = Event.current.keyCode;
 					if ( Event.current.shift )
 					{
-						if ( keyCode == KeyCode.KeypadEnter ||
-							keyCode == KeyCode.Return ||
-							keyCode == KeyCode.F3/*&& GUI.GetNameOfFocusedControl().Equals( SearchBarId )*/ )
+						if ( keyCode == KeyCode.F3 ||
+							( ( keyCode == KeyCode.KeypadEnter || keyCode == KeyCode.Return ) &&
+							( currentFocus.Equals( SearchBarId ) || string.IsNullOrEmpty( currentFocus ) ) ) )
 							SelectPrevious();
 					}
 					else
 					{
-						if ( keyCode == KeyCode.KeypadEnter ||
-							keyCode == KeyCode.Return ||
-							keyCode == KeyCode.F3/*&& GUI.GetNameOfFocusedControl().Equals( SearchBarId )*/ )
+						if ( keyCode == KeyCode.F3 ||
+							( ( keyCode == KeyCode.KeypadEnter || keyCode == KeyCode.Return ) &&
+							( currentFocus.Equals( SearchBarId ) || string.IsNullOrEmpty( currentFocus ) ) ) )
 							SelectNext();
 					}
-
 				}
-				
+
 				m_searchBarSize.x = m_transformedArea.x + m_transformedArea.width - 235 - TabX;
 				EditorGUI.BeginChangeCheck();
 				{
@@ -232,27 +227,43 @@ namespace AmplifyShaderEditor
 				}
 				if ( EditorGUI.EndChangeCheck() )
 				{
-					m_refreshList = true;
+					m_refreshSearchResultList = true;
 				}
-				
+
 				m_searchBarSize.x += m_searchBarSize.width;
 				if ( GUI.Button( m_searchBarSize, string.Empty, UIUtils.ToolbarSearchCancelButton ) )
 				{
-					m_searchBarValue = string.Empty;
-					m_selectedNodes.Clear();
-					m_currentSelected = -1;
+					if ( string.IsNullOrEmpty( m_searchBarValue ) )
+					{
+						m_searchBarVisible = false;
+						m_refreshSearchResultList = false;
+					}
+					else
+					{
+						m_searchBarValue = string.Empty;
+						m_searchResultNodes.Clear();
+						m_currentSelected = -1;
+					}
 				}
+
+
 
 				if ( Event.current.isKey && Event.current.keyCode == KeyCode.Escape )
 				{
 					m_searchBarVisible = false;
-					m_refreshList = false;
+					m_refreshSearchResultList = false;
 				}
 
-				if ( m_refreshList && ( m_parentWindow.CurrentInactiveTime > InactivityRefreshTime ) )
+				if ( m_refreshSearchResultList && ( m_parentWindow.CurrentInactiveTime > InactivityRefreshTime ) )
 				{
 					RefreshList();
 				}
+			}
+
+			if ( m_selectSearchBarTextfield )
+			{
+				m_selectSearchBarTextfield = false;
+				GUI.FocusControl( SearchBarId );
 			}
 
 			if ( Event.current.control && Event.current.isKey && Event.current.keyCode == KeyCode.F )
@@ -260,11 +271,10 @@ namespace AmplifyShaderEditor
 				if ( !m_searchBarVisible )
 				{
 					m_searchBarVisible = true;
-					m_refreshList = false;
+					m_refreshSearchResultList = false;
 				}
-				GUI.FocusControl( SearchBarId );
+				m_selectSearchBarTextfield = true;
 			}
-
 
 			GUI.color = m_focusOnMasterNodeButton.IsInside( mousePosition ) ? RightIconsColorOn : RightIconsColorOff;
 			m_focusOnMasterNodeButton.Draw( m_transformedArea.x + m_transformedArea.width - 105 - TabX, TabY );
@@ -279,20 +289,25 @@ namespace AmplifyShaderEditor
 			GUI.color = bufferedColor;
 		}
 
+		public void OnNodeRemovedFromGraph( ParentNode node )
+		{
+			m_searchResultNodes.Remove( node );
+		}
+
 		void RefreshList()
 		{
-			m_refreshList = false;
+			m_refreshSearchResultList = false;
 			m_currentSelected = -1;
-			m_selectedNodes.Clear();
+			m_searchResultNodes.Clear();
 			if ( !string.IsNullOrEmpty( m_searchBarValue ) )
 			{
 				List<ParentNode> nodes = m_parentWindow.CurrentGraph.AllNodes;
 				int count = nodes.Count;
 				for ( int i = 0; i < count; i++ )
 				{
-					if ( nodes[ i ].TitleContent.text.IndexOf( m_searchBarValue , StringComparison.CurrentCultureIgnoreCase ) >= 0 )
+					if ( nodes[ i ].TitleContent.text.IndexOf( m_searchBarValue, StringComparison.CurrentCultureIgnoreCase ) >= 0 )
 					{
-						m_selectedNodes.Add( nodes[ i ] );
+						m_searchResultNodes.Add( nodes[ i ] );
 					}
 				}
 			}
@@ -300,29 +315,29 @@ namespace AmplifyShaderEditor
 
 		void SelectNext()
 		{
-			if ( m_refreshList )
+			if ( m_refreshSearchResultList )
 			{
 				RefreshList();
 			}
 
-			if ( m_selectedNodes.Count > 0 )
+			if ( m_searchResultNodes.Count > 0 )
 			{
-				m_currentSelected = ( m_currentSelected + 1 ) % m_selectedNodes.Count;
-				m_parentWindow.FocusOnNode( m_selectedNodes[ m_currentSelected ], 1, true );
+				m_currentSelected = ( m_currentSelected + 1 ) % m_searchResultNodes.Count;
+				m_parentWindow.FocusOnNode( m_searchResultNodes[ m_currentSelected ], 1, true ,true);
 			}
 		}
 
 		void SelectPrevious()
 		{
-			if ( m_refreshList )
+			if ( m_refreshSearchResultList )
 			{
 				RefreshList();
 			}
 
-			if ( m_selectedNodes.Count > 0 )
+			if ( m_searchResultNodes.Count > 0 )
 			{
-				m_currentSelected = ( m_currentSelected > 1 ) ? ( m_currentSelected - 1 ) : ( m_selectedNodes.Count - 1 );
-				m_parentWindow.FocusOnNode( m_selectedNodes[ m_currentSelected ], 1, true );
+				m_currentSelected = ( m_currentSelected > 1 ) ? ( m_currentSelected - 1 ) : ( m_searchResultNodes.Count - 1 );
+				m_parentWindow.FocusOnNode( m_searchResultNodes[ m_currentSelected ], 1, true );
 			}
 		}
 

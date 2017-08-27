@@ -114,6 +114,7 @@ namespace AmplifyShaderEditor
 		private bool m_usingWorldReflection;
 		private bool m_usingViewDirection;
 		private bool m_usingLightAttenuation;
+		private bool m_usingArrayDerivatives;
 
 		private bool m_usingHigherSizeTexcoords;
 
@@ -131,6 +132,7 @@ namespace AmplifyShaderEditor
 		private int m_availableFragTempId = 0;
 
 		private MasterNodePortCategory m_portCategory;
+		private RenderPath m_renderPath = RenderPath.All;
 
 		public MasterNodeDataCollector( MasterNode masterNode )
 		{
@@ -418,15 +420,17 @@ namespace AmplifyShaderEditor
 
 		public void AddGrabPass( string value )
 		{
-			m_grabPassIsDirty = true;
+			
 			if ( string.IsNullOrEmpty( value ) )
 			{
-				m_grabPass = IOUtils.GrabPassEmpty;
+				if( !m_grabPassIsDirty )
+					m_grabPass += IOUtils.GrabPassEmpty;
 			}
 			else
 			{
-				m_grabPass = IOUtils.GrabPassBegin + value + IOUtils.GrabPassEnd;
+				m_grabPass += IOUtils.GrabPassBegin + value + IOUtils.GrabPassEnd;
 			}
+			m_grabPassIsDirty = true;
 		}
 
 		public void AddToUniforms( int nodeId, string dataType, string dataName )
@@ -1075,6 +1079,17 @@ namespace AmplifyShaderEditor
 		{
 			get { return m_usingLightAttenuation; }
 			set { m_usingLightAttenuation = value; }
+		}
+
+		public bool UsingArrayDerivatives
+		{
+			get { return m_usingArrayDerivatives; }
+			set { m_usingArrayDerivatives = value; }
+		}
+		public RenderPath CurrentRenderPath
+		{
+			get { return m_renderPath; }
+			set { m_renderPath = value; }
 		}
 	}
 }

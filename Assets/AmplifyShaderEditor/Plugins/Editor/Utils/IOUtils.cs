@@ -70,7 +70,7 @@ namespace AmplifyShaderEditor
 		public static readonly string PropertiesElement = "\t\t{0}\n";
 
 		public static readonly string PragmaTargetHeader = "\t\t#pragma target {0}\n";
-		public static readonly string InstancedPropertiesHeader = "\t\t#pragma multi_compile_instancing\n";
+		public static readonly string InstancedPropertiesHeader = "multi_compile_instancing";
 		public static readonly string VirtualTexturePragmaHeader = "multi_compile _ _VT_SINGLE_MODE";
 
 		public static readonly string InstancedPropertiesBegin = "\t\tUNITY_INSTANCING_CBUFFER_START({0})\n";

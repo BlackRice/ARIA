@@ -9,6 +9,13 @@ namespace AmplifyShaderEditor
 
 	public struct Constants
 	{
+		public static float NodeButtonSizeX = 16;
+		public static float NodeButtonSizeY = 16;
+		public static float NodeButtonDeltaX = 5;
+		public static float NodeButtonDeltaY = 11;
+
+
+		public readonly static string DeprecatedMessageStr = "Node '{0}' is deprecated. Use node '{1}' instead.";
 		public readonly static string UndoMoveNodesId = "Moving Nodes";
 		public readonly static string UndoRegisterFullGrapId = "Register Graph";
 		public readonly static string UndoAddNodeToCommentaryId = "Add node to Commentary";
@@ -28,10 +35,13 @@ namespace AmplifyShaderEditor
 
 		public readonly static string ASEMenuName = "Amplify Shader";
 
+		public readonly static string LodCrossFadeOption2017 = "dithercrossfade";
+
 		public readonly static string UnityShaderVariables = "UnityShaderVariables.cginc";
 		public readonly static string UnityCgLibFuncs = "UnityCG.cginc";
 		public readonly static string UnityStandardUtilsLibFuncs = "UnityStandardUtils.cginc";
 		public readonly static string UnityPBSLightingLib = "UnityPBSLighting.cginc";
+		public readonly static string UnityDeferredLightLib = "UnityDeferredLibrary.cginc";
 		public readonly static string ATSharedLibGUID = "ba242738c4be3324aa88d126f7cc19f9";
 
 		public readonly static string HelpURL = "http://wiki.amplify.pt/index.php?title=Unity_Products:Amplify_Shader_Editor";
@@ -39,7 +49,7 @@ namespace AmplifyShaderEditor
 		public readonly static string CommunityNodeCommonUrl = "http://wiki.amplify.pt/index.php?title=Unity_Products:Amplify_Shader_Editor/Community_Nodes#";
 		public readonly static Color InfiniteLoopColor = Color.red;
 
-		public readonly static Color DefaultCategoryColor = new Color( 0.1f, 0.35f, 0.44f, 1.0f );
+		public readonly static Color DefaultCategoryColor = new Color( 0.26f, 0.35f, 0.44f, 1.0f );
 		public readonly static Color NodeBodyColor = new Color( 1f, 1f, 1f, 1.0f );
 
 		public readonly static Color ModeTextColor = new Color( 1f, 1f, 1f, 0.25f );
@@ -140,6 +150,8 @@ namespace AmplifyShaderEditor
 		public readonly static string ValueLabel = "Value";
 		public readonly static string DefaultValueLabel = "Default Value";
 		public readonly static string MaterialValueLabel = "Material Value";
+		public readonly static GUIContent DefaultValueLabelContent = new GUIContent( "Default Value" );
+		public readonly static GUIContent MaterialValueLabelContent = new GUIContent( "Material Value" );
 
 		public readonly static string InputVarStr = "i";//"input";
 		public readonly static string OutputVarStr = "o";//"output";

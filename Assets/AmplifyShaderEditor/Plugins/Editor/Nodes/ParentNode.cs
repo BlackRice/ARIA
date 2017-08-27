@@ -18,12 +18,18 @@ namespace AmplifyShaderEditor
 		Right
 	}
 
+	public enum NodeMessageType
+	{
+		Error,
+		Warning,
+		Info
+	}
+
 	[Serializable]
 	public class ParentNode : UndoParentNode, ISerializationCallbackReceiver
 	{
 		private const double NodeClickTime = 0.2;
 		protected GUIContent PrecisionContante = new GUIContent( "Precision", "Changes the precision of internal calculations, using lower types saves some performance\nDefault: Float" );
-		protected const string DeprecatedMessageStr = "Node '{0}' is deprecated. Use node '{1}' instead.";
 		private const int MoveCountBuffer = 3;// When testing for stopped movement we need to take Layout and Repaint into account for them not to interfere with tests
 		private const float MinInsideBoxWidth = 20;
 		private const float MinInsideBoxHeight = 10;
@@ -152,13 +158,13 @@ namespace AmplifyShaderEditor
 		[SerializeField]
 		protected bool m_materialMode = false;
 
-		//[SerializeField]
-		protected bool m_showErrorMessage = false;
-		private bool m_previousErrorMessage = false;
-		protected bool m_errorMessageTypeIsError = true;
-		protected string m_errorMessageTooltip = string.Empty;
+		
 		private Rect m_errorBox;
-		//[SerializeField]
+		private bool m_previousErrorMessage = false;
+		protected bool m_showErrorMessage = false;
+		protected NodeMessageType m_errorMessageTypeIsError = NodeMessageType.Error;
+		protected string m_errorMessageTooltip = string.Empty;
+		
 		private int m_extraHeaderHeight = 0;
 
 		protected PreviewLocation m_selectedLocation = PreviewLocation.Auto;
@@ -175,6 +181,7 @@ namespace AmplifyShaderEditor
 
 		private GUIContent m_errorContent = new GUIContent( "ERROR" );
 		private GUIContent m_warningContent = new GUIContent( "WARNING" );
+		private GUIContent m_infoContent = new GUIContent( "INFO" );
 
 		protected uint m_currentReadParamIdx = 1;
 		protected bool m_reorderLocked = false;
@@ -321,10 +328,6 @@ namespace AmplifyShaderEditor
 				m_tooltipText = m_nodeAttribs.Description;
 				m_selected = false;
 				m_headerColor = UIUtils.GetColorFromCategory( m_nodeAttribs.Category );
-				if ( m_nodeAttribs.Deprecated )
-				{
-					UIUtils.ShowMessage( string.Format( DeprecatedMessageStr, m_nodeAttribs.Name, m_nodeAttribs.DeprecatedAlternative ), MessageSeverity.Normal, false );
-				}
 			}
 
 			m_sizeContentAux = new GUIContent();
@@ -366,7 +369,7 @@ namespace AmplifyShaderEditor
 			OnNodeStoppedMovingEvent = null;
 			OnNodeChangeSizeEvent = null;
 			OnNodeReOrderEvent = null;
-			if( m_restrictions != null )
+			if ( m_restrictions != null )
 				m_restrictions.Destroy();
 			m_restrictions = null;
 			int inputCount = m_inputPorts.Count;
@@ -870,9 +873,9 @@ namespace AmplifyShaderEditor
 			int count = m_outputPorts.Count;
 			for ( int i = 0; i < count; i++ )
 			{
-				if( m_outputPorts[i].IsConnected )
+				if ( m_outputPorts[ i ].IsConnected )
 				{
-					for ( int f = 0; f < m_outputPorts[i].ExternalReferences.Count; f++ )
+					for ( int f = 0; f < m_outputPorts[ i ].ExternalReferences.Count; f++ )
 					{
 						m_outputPorts[ i ].GetInputNode( f ).OnNodeChange();
 					}
@@ -999,7 +1002,7 @@ namespace AmplifyShaderEditor
 
 		public virtual void DrawTitle( Rect titlePos )
 		{
-			if ( ContainerGraph.ParentWindow.CameraDrawInfo.InvertedZoom > 0.1f )
+			if ( ContainerGraph.LodLevel <= ParentGraph.NodeLOD.LOD3 )
 			{
 				GUI.Label( titlePos, m_content, UIUtils.GetCustomStyle( CustomStyle.NodeTitle ) );
 			}
@@ -1059,7 +1062,7 @@ namespace AmplifyShaderEditor
 
 		protected void DrawPreviewMaskButtons( DrawInfo drawInfo, Rect rect )
 		{
-			if ( rect.Contains( drawInfo.MousePosition ) && m_channelNumber > 1 && ContainerGraph.LodLevel != ParentGraph.NodeLOD.LOD3 )
+			if ( rect.Contains( drawInfo.MousePosition ) && m_channelNumber > 1 && ContainerGraph.LodLevel <= ParentGraph.NodeLOD.LOD2 )
 			{
 				Rect buttonRect = rect;
 				buttonRect.height = 14 * drawInfo.InvertedZoom;
@@ -1096,7 +1099,7 @@ namespace AmplifyShaderEditor
 				}
 			}
 		}
-		
+
 		public virtual void Draw( DrawInfo drawInfo )
 		{
 			if ( !m_firstDraw )
@@ -1136,7 +1139,7 @@ namespace AmplifyShaderEditor
 					m_sizeIsDirty = false;
 					ChangeSize();
 				}
-				
+
 				CalculatePositionAndVisibility( drawInfo );
 				Color colorBuffer = GUI.color;
 
@@ -1191,7 +1194,7 @@ namespace AmplifyShaderEditor
 					DrawTitle( titlePos );
 
 					//PropertyType parameterType = ( PropertyType )EditorGUI.EnumPopup( rect, m_currentParameterType, UIUtils.PropertyPopUp );
-					if ( m_drawPreviewExpander )
+					if ( m_drawPreviewExpander && ContainerGraph.LodLevel <= ParentGraph.NodeLOD.LOD4 )
 					{
 						Rect expandRect = m_globalPosition;
 						expandRect.width = Constants.PreviewExpanderWidth * drawInfo.InvertedZoom;
@@ -1210,7 +1213,7 @@ namespace AmplifyShaderEditor
 					if ( m_additionalContent.text.Length > 0 && drawInfo.InvertedZoom > 0.1f )
 					{
 						titlePos.y = m_globalPosition.y;
-						titlePos.yMin += ( 18 * drawInfo.InvertedZoom );
+						titlePos.yMin += ( 19 * drawInfo.InvertedZoom );
 						GUI.Label( titlePos, m_additionalContent, UIUtils.GetCustomStyle( CustomStyle.PropertyValuesTitle ) );
 					}
 				}
@@ -1262,7 +1265,7 @@ namespace AmplifyShaderEditor
 							}
 
 							m_inputPorts[ i ].LabelSize = m_inputPorts[ i ].UnscaledLabelSize * drawInfo.InvertedZoom;
-							
+
 							if ( m_isVisible )
 							{
 								//inputPortStyle.normal.textColor = Constants.PortTextColor;
@@ -1271,7 +1274,7 @@ namespace AmplifyShaderEditor
 									GUI.color = Constants.PortLockedTextColor;
 								}
 
-								if ( ContainerGraph.LodLevel != ParentGraph.NodeLOD.LOD4 )
+								if ( ContainerGraph.LodLevel <= ParentGraph.NodeLOD.LOD3 )
 								{
 									if ( m_inputPorts[ i ].Draw( textPos, inputPortStyle ) )
 									{
@@ -1301,7 +1304,7 @@ namespace AmplifyShaderEditor
 								portPos.xMax += m_inputPorts[ i ].LabelSize.x + Constants.PORT_TO_LABEL_SPACE_X * drawInfo.InvertedZoom + scaledOverflow + overflow;
 								//GUI.Box( portPos, string.Empty, UIUtils.CurrentWindow.CustomStylesInstance.Box );
 								m_inputPorts[ i ].ActivePortArea = portPos;
-								if ( m_isVisible )
+								if ( m_isVisible && ContainerGraph.LodLevel <= ParentGraph.NodeLOD.LOD4 )
 								{
 									if ( ContainerGraph.ParentWindow.Options.ColoredPorts )
 										GUI.color = UIUtils.GetColorForDataType( m_inputPorts[ i ].DataType, false, false );
@@ -1331,7 +1334,7 @@ namespace AmplifyShaderEditor
 
 										if ( doubleTap )
 										{
-											UIUtils.DeleteConnection( true, UniqueId, m_inputPorts[ i ].PortId, true, true );
+											m_containerGraph.DeleteConnection( true, UniqueId, m_inputPorts[ i ].PortId, true, true );
 										}
 										else
 										//if ( AppyModifierToPort( _inputPorts[ i ], true ) )
@@ -1346,10 +1349,10 @@ namespace AmplifyShaderEditor
 										saveReference = false;
 									}
 
-									if ( saveReference && !UIUtils.InputPortReference.IsValid )
+									if ( saveReference && !m_containerGraph.ParentWindow.WireReferenceUtils.InputPortReference.IsValid )
 									//if ( !modifierApplied && !UIUtils.InputPortReference.IsValid )
 									{
-										UIUtils.InputPortReference.SetReference( m_uniqueId, m_inputPorts[ i ].PortId, m_inputPorts[ i ].DataType, m_inputPorts[ i ].TypeLocked );
+										m_containerGraph.ParentWindow.WireReferenceUtils.InputPortReference.SetReference( m_uniqueId, m_inputPorts[ i ].PortId, m_inputPorts[ i ].DataType, m_inputPorts[ i ].TypeLocked );
 									}
 
 									//GUI.Box( portPos, string.Empty, UIUtils.CurrentWindow.CustomStylesInstance.Box );
@@ -1407,7 +1410,7 @@ namespace AmplifyShaderEditor
 							if ( m_isVisible )
 							{
 								//outputPortStyle.normal.textColor = Constants.PortTextColor;
-								if ( drawInfo.InvertedZoom > 0.1f )
+								if ( ContainerGraph.LodLevel <= ParentGraph.NodeLOD.LOD3 )
 								{
 									if ( m_outputPorts[ i ].Draw( textPos, outputPortStyle ) )
 									{
@@ -1440,7 +1443,8 @@ namespace AmplifyShaderEditor
 								portPos.xMax += Constants.PORT_INITIAL_X * drawInfo.InvertedZoom + scaledOverflow + overflow;
 								m_outputPorts[ i ].ActivePortArea = portPos;
 								//GUI.Box( portPos, string.Empty, UIUtils.CurrentWindow.CustomStylesInstance.Box );
-								if ( m_isVisible )
+
+								if ( m_isVisible && ContainerGraph.LodLevel <= ParentGraph.NodeLOD.LOD4 )
 								{
 									if ( ContainerGraph.ParentWindow.Options.ColoredPorts )
 										GUI.color = UIUtils.GetColorForDataType( m_outputPorts[ i ].DataType, false, false );
@@ -1464,9 +1468,9 @@ namespace AmplifyShaderEditor
 										}
 									}
 
-									if ( saveReference && !UIUtils.OutputPortReference.IsValid )
+									if ( saveReference && !m_containerGraph.ParentWindow.WireReferenceUtils.OutputPortReference.IsValid )
 									{
-										UIUtils.OutputPortReference.SetReference( m_uniqueId, m_outputPorts[ i ].PortId, m_outputPorts[ i ].DataType, false );
+										m_containerGraph.ParentWindow.WireReferenceUtils.OutputPortReference.SetReference( m_uniqueId, m_outputPorts[ i ].PortId, m_outputPorts[ i ].DataType, false );
 									}
 									//GUI.Box( portPos, string.Empty, UIUtils.CurrentWindow.CustomStylesInstance.Box );
 									IsDirty = true;
@@ -1524,7 +1528,7 @@ namespace AmplifyShaderEditor
 					m_sizeIsDirty = true;
 				}
 
-				if( m_showErrorMessage && m_isVisible )
+				if ( m_showErrorMessage && m_isVisible )
 				{
 					float bottom = m_globalPosition.yMax - 28 * drawInfo.InvertedZoom;
 					m_errorBox = m_globalPosition;
@@ -1536,9 +1540,36 @@ namespace AmplifyShaderEditor
 					GUI.color = colorBuffer;
 
 					GUIContent icon = new GUIContent();
-					GUIContent message = m_errorMessageTypeIsError ? m_errorContent : m_warningContent;
-					icon.image = m_errorMessageTypeIsError ? UIUtils.SmallErrorIcon : UIUtils.SmallWarningIcon; ;
-					GUIStyle currentStyle = m_errorMessageTypeIsError ? UIUtils.BoldErrorStyle : UIUtils.BoldWarningStyle;
+					GUIContent message;
+
+					GUIStyle currentStyle;
+
+					switch ( m_errorMessageTypeIsError )
+					{
+						default:
+						case NodeMessageType.Error:
+						{
+							message = m_errorContent;
+							icon.image = UIUtils.SmallErrorIcon;
+							currentStyle = UIUtils.BoldErrorStyle;
+						}
+						break;
+						case NodeMessageType.Warning:
+						{
+							message = m_warningContent;
+							icon.image = UIUtils.SmallWarningIcon;
+							currentStyle = UIUtils.BoldWarningStyle;
+						}
+						break;
+						case NodeMessageType.Info:
+						{
+							message = m_infoContent;
+							icon.image = UIUtils.SmallInfoIcon;
+							currentStyle = UIUtils.BoldInfoStyle;
+						}
+						break;
+					}
+
 					Rect textBox = m_errorBox;
 					textBox.y += 1 * drawInfo.InvertedZoom;
 					textBox.height = 24 * drawInfo.InvertedZoom;
@@ -1745,10 +1776,10 @@ namespace AmplifyShaderEditor
 
 			if ( m_globalPosition.Contains( drawInfo.MousePosition ) || m_linkVisibility )
 			{
-				if ( m_tooltipTimestamp + 0.5f < Time.realtimeSinceStartup || m_linkVisibility )
+				if ( m_tooltipTimestamp + 0.6f < Time.realtimeSinceStartup || m_linkVisibility )
 				{
 					bool errorTooltip = false;
-					if( m_showErrorMessage && m_errorBox.Contains( drawInfo.MousePosition ) && !string.IsNullOrEmpty( m_errorMessageTooltip ) )
+					if ( m_showErrorMessage && m_errorBox.Contains( drawInfo.MousePosition ) && !string.IsNullOrEmpty( m_errorMessageTooltip ) )
 						errorTooltip = true;
 
 					Rect globalTooltipPos = m_globalPosition;
@@ -1762,7 +1793,7 @@ namespace AmplifyShaderEditor
 						optimal.y = UIUtils.TooltipBox.CalcHeight( temp, 300f );
 					}
 
-					globalTooltipPos.width = Mathf.Max(120, optimal.x);
+					globalTooltipPos.width = Mathf.Max( 120, optimal.x );
 					globalTooltipPos.height = optimal.y;
 					globalTooltipPos.center = m_globalPosition.center;
 
@@ -1788,7 +1819,7 @@ namespace AmplifyShaderEditor
 
 					GUI.Box( globalTooltipPos, temp, UIUtils.TooltipBox );
 
-					if( !errorTooltip )
+					if ( !errorTooltip )
 					{
 						Rect link = globalTooltipPos;
 						link.y = globalTooltipPos.yMax - 16;
@@ -1800,7 +1831,7 @@ namespace AmplifyShaderEditor
 						m_linkVisibility = hover.Contains( drawInfo.MousePosition );
 						if ( GUI.Button( link, "online reference", UIUtils.MainSkin.customStyles[ 52 ] ) )
 						{
-							if( m_tooltipTimestamp + 1f < Time.realtimeSinceStartup )
+							if ( m_tooltipTimestamp + 1f < Time.realtimeSinceStartup )
 								Application.OpenURL( Attributes.NodeUrl );
 						}
 					}
@@ -1809,7 +1840,7 @@ namespace AmplifyShaderEditor
 			}
 			else
 			{
-				if( !m_linkVisibility )
+				if ( !m_linkVisibility )
 					m_tooltipTimestamp = Time.realtimeSinceStartup;
 			}
 
@@ -1900,8 +1931,8 @@ namespace AmplifyShaderEditor
 		protected void PickInput( WirePort port )
 		{
 			WireReference connection = port.GetConnection( 0 );
-			UIUtils.OutputPortReference.SetReference( connection.NodeId, connection.PortId, connection.DataType, connection.TypeLocked );
-			UIUtils.DeleteConnection( true, UniqueId, port.PortId, true, true );
+			m_containerGraph.ParentWindow.WireReferenceUtils.OutputPortReference.SetReference( connection.NodeId, connection.PortId, connection.DataType, connection.TypeLocked );
+			m_containerGraph.DeleteConnection( true, UniqueId, port.PortId, true, true );
 			//TODO: check if not necessary
 			Event.current.Use();
 			IsDirty = true;
@@ -1915,8 +1946,9 @@ namespace AmplifyShaderEditor
 			{
 				case EventModifiers.Alt:
 				{
-					UIUtils.DeleteConnection( isInput, UniqueId, port.PortId, true, true );
+					m_containerGraph.DeleteConnection( isInput, UniqueId, port.PortId, true, true );
 					modifierApplied = true;
+					m_containerGraph.ParentWindow.InvalidateAlt();
 				}
 				break;
 				case EventModifiers.Control:
@@ -1937,8 +1969,8 @@ namespace AmplifyShaderEditor
 					if ( !isInput )
 					{
 						WireReference connection = port.GetConnection( 0 );
-						UIUtils.InputPortReference.SetReference( connection.NodeId, connection.PortId, connection.DataType, connection.TypeLocked );
-						UIUtils.DeleteConnection( isInput, UniqueId, port.PortId, true, true );
+						m_containerGraph.ParentWindow.WireReferenceUtils.InputPortReference.SetReference( connection.NodeId, connection.PortId, connection.DataType, connection.TypeLocked );
+						m_containerGraph.DeleteConnection( isInput, UniqueId, port.PortId, true, true );
 						modifierApplied = true;
 					}
 				}
@@ -1946,9 +1978,9 @@ namespace AmplifyShaderEditor
 			}
 
 			if ( isInput )
-				UIUtils.SwitchPortReference.SetReference( port.NodeId, port.PortId, port.DataType, false ); //always save last connection
+				m_containerGraph.ParentWindow.WireReferenceUtils.SwitchPortReference.SetReference( port.NodeId, port.PortId, port.DataType, false ); //always save last connection
 			else
-				UIUtils.SwitchPortReference.SetReference( -1, -1, WirePortDataType.OBJECT, false ); //invalidate connection
+				m_containerGraph.ParentWindow.WireReferenceUtils.SwitchPortReference.SetReference( -1, -1, WirePortDataType.OBJECT, false ); //invalidate connection
 
 			if ( modifierApplied )
 			{
@@ -1965,7 +1997,7 @@ namespace AmplifyShaderEditor
 			for ( int i = 0; i < count; i++ )
 			{
 				if ( m_inputPorts[ i ].IsConnected )
-					UIUtils.DeleteConnection( true, UniqueId, m_inputPorts[ i ].PortId, false, true );
+					m_containerGraph.DeleteConnection( true, UniqueId, m_inputPorts[ i ].PortId, false, true );
 			}
 			if ( alsoDeletePorts )
 			{
@@ -1981,7 +2013,7 @@ namespace AmplifyShaderEditor
 			for ( int i = 0; i < count; i++ )
 			{
 				if ( m_outputPorts[ i ].IsConnected )
-					UIUtils.DeleteConnection( false, UniqueId, m_outputPorts[ i ].PortId, false, true );
+					m_containerGraph.DeleteConnection( false, UniqueId, m_outputPorts[ i ].PortId, false, true );
 			}
 
 			if ( alsoDeletePorts )
@@ -1997,7 +2029,7 @@ namespace AmplifyShaderEditor
 			if ( arrayIdx >= m_inputPorts.Count )
 				return;
 
-			UIUtils.DeleteConnection( true, UniqueId, arrayIdx, false, true );
+			m_containerGraph.DeleteConnection( true, UniqueId, arrayIdx, false, true );
 			m_inputPortsDict.Remove( m_inputPorts[ arrayIdx ].PortId );
 			m_inputPorts.RemoveAt( arrayIdx );
 
@@ -2011,7 +2043,7 @@ namespace AmplifyShaderEditor
 			if ( portIdx >= m_outputPorts.Count )
 				return;
 
-			UIUtils.DeleteConnection( false, UniqueId, portIdx, false, true );
+			m_containerGraph.DeleteConnection( false, UniqueId, portIdx, false, true );
 			m_outputPortsDict.Remove( m_outputPorts[ portIdx ].PortId );
 			m_outputPorts.RemoveAt( portIdx );
 			m_sizeIsDirty = true;
@@ -2102,7 +2134,7 @@ namespace AmplifyShaderEditor
 			{
 				if ( m_outputPorts[ outputId ].DataType != WirePortDataType.OBJECT && m_outputPorts[ outputId ].DataType != inputPortType )
 				{
-					return UIUtils.CastPortType( ref dataCollector , m_currentPrecisionType, new NodeCastInfo( m_uniqueId, outputId ), null, m_outputPorts[ outputId ].DataType, inputPortType, m_outputPorts[ outputId ].LocalValue );
+					return UIUtils.CastPortType( ref dataCollector, m_currentPrecisionType, new NodeCastInfo( m_uniqueId, outputId ), null, m_outputPorts[ outputId ].DataType, inputPortType, m_outputPorts[ outputId ].LocalValue );
 				}
 				else
 				{
@@ -2247,11 +2279,11 @@ namespace AmplifyShaderEditor
 			int outputCount = m_outputPorts.Count;
 			for ( int i = 0; i < outputCount; i++ )
 			{
-				if( !m_outputPorts[ i ].IsLocalOnCategory( category ))
+				if ( !m_outputPorts[ i ].IsLocalOnCategory( category ) )
 					m_outputPorts[ i ].ResetLocalValue();
 			}
 		}
-		
+
 		public virtual void Rewire()
 		{
 		}
@@ -2292,7 +2324,7 @@ namespace AmplifyShaderEditor
 		}
 
 
-		public Rect Position { get { return m_position; } }
+		public virtual Rect Position { get { return m_position; } }
 
 		public Vector2 CenterPosition { get { return new Vector2( m_position.x + m_position.width * 0.5f, m_position.y + m_position.height * 0.5f ); ; } }
 
@@ -2309,6 +2341,18 @@ namespace AmplifyShaderEditor
 				m_position.y = value.y;
 			}
 		}
+
+		public Vector3 Vec3Position
+		{
+			get { return new Vector3( m_position.x, m_position.y,0f ); }
+
+			set
+			{
+				m_position.x = value.x;
+				m_position.y = value.y;
+			}
+		}
+
 
 		public bool Selected
 		{
@@ -2546,8 +2590,8 @@ namespace AmplifyShaderEditor
 		public virtual void OnObjectDropped( UnityEngine.Object obj ) { }
 		public virtual void SetupFromCastObject( UnityEngine.Object obj ) { }
 		public virtual bool OnNodeInteraction( ParentNode node ) { return false; }
-		public virtual void OnConnectedOutputNodeChanges( int inputPortId, int otherNodeId, int otherPortId, string name, WirePortDataType type ) { }
-		public virtual void OnConnectedInputNodeChanges( int outputPortId, int otherNodeId, int otherPortId, string name, WirePortDataType type ) { }
+		public virtual void OnConnectedOutputNodeChanges( int portId, int otherNodeId, int otherPortId, string name, WirePortDataType type ) { }
+		public virtual void OnConnectedInputNodeChanges( int portId, int otherNodeId, int otherPortId, string name, WirePortDataType type ) { }
 
 		public Rect CachedPos { get { return m_cachedPos; } }
 
@@ -2593,7 +2637,7 @@ namespace AmplifyShaderEditor
 			m_graphDepth = 0;
 		}
 
-		public virtual void PropagateNodeData( NodeData nodeData , ref MasterNodeDataCollector dataCollector )
+		public virtual void PropagateNodeData( NodeData nodeData, ref MasterNodeDataCollector dataCollector )
 		{
 			UIUtils.SetCategoryInBitArray( ref m_category, nodeData.Category );
 			nodeData.GraphDepth += 1;
@@ -2606,7 +2650,7 @@ namespace AmplifyShaderEditor
 			{
 				if ( m_inputPorts[ i ].IsConnected )
 				{
-					m_inputPorts[ i ].GetOutputNode().PropagateNodeData( nodeData , ref dataCollector );
+					m_inputPorts[ i ].GetOutputNode().PropagateNodeData( nodeData, ref dataCollector );
 				}
 			}
 		}
@@ -2659,6 +2703,7 @@ namespace AmplifyShaderEditor
 		public bool RequireMaterialUpdate { get { return m_requireMaterialUpdate; } }
 		public bool RMBIgnore { get { return m_rmbIgnore; } }
 		public float TextLabelWidth { get { return m_textLabelWidth; } }
+		public bool IsMoving { get { return m_isMoving > 0; } }
 		public bool MovingInFrame { get { return m_movingInFrame; } }
 		public bool SizeIsDirty { get { return m_sizeIsDirty; } }
 		public int Category { get { return m_category; } }
@@ -2775,6 +2820,23 @@ namespace AmplifyShaderEditor
 				}
 			}
 		}
+		
+		protected void ShowTab( NodeMessageType type, string tooltip )
+		{
+			m_showErrorMessage = true;
+			m_errorMessageTypeIsError = type;
+			m_errorMessageTooltip = tooltip;
+		}
+
+		protected void ShowTab()
+		{
+			m_showErrorMessage = true;
+		}
+
+		protected void HideTab()
+		{
+			m_showErrorMessage = false;
+		}
 
 		public RenderTexture PreviewTexture
 		{
@@ -2825,6 +2887,35 @@ namespace AmplifyShaderEditor
 			{
 				Debug.LogException( e );
 			}
+		}
+
+		public string GenerateClippedTitle( string original )
+		{
+			if ( UIUtils.UnZoomedNodeTitleStyle == null )
+				return original;
+
+			GUIContent content = new GUIContent( original );
+
+			string finalTitle = string.Empty;
+			bool addEllipsis = false;
+			for ( int i = 1; i <= original.Length; i++ )
+			{
+				content.text = original.Substring( 0, i );
+				Vector2 titleSize = UIUtils.UnZoomedNodeTitleStyle.CalcSize( content );
+				int maxSize = 170;
+				if ( titleSize.x > maxSize )
+				{
+					addEllipsis = true;
+					break;
+				}
+				else
+				{
+					finalTitle = content.text;
+				}
+			}
+			if ( addEllipsis )
+				finalTitle += "...";
+			return finalTitle;
 		}
 
 		public virtual void RefreshOnUndo() { }
@@ -2901,14 +2992,17 @@ namespace AmplifyShaderEditor
 		{
 			m_containerGraph = newgraph;
 		}
+		public virtual void RefreshExternalReferences() { }
 
 		/// <summary>
 		/// It's the graph the node exists in, this is set after node creation and it's not available on CommonInit
 		/// </summary>
-		public ParentGraph ContainerGraph 
+		public ParentGraph ContainerGraph
 		{
 			get { return m_containerGraph; }
 			set { m_containerGraph = value; }
 		}
+		public virtual bool Contains( Vector2 pos ) { return m_globalPosition.Contains( pos ); }
+		public virtual bool Contains( Vector3 pos ) { return m_globalPosition.Contains( pos ); }
 	}
 }

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Toggle Switch", "Misc", "Switch between any of its input ports" )]
+	[NodeAttributes( "Toggle Switch", "Logical Operators", "Switch between any of its input ports" )]
 	public class ToggleSwitchNode : PropertyNode
 	{
 		private const string InputPortName = "In ";

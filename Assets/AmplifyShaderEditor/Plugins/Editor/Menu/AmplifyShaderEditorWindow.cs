@@ -31,7 +31,7 @@ namespace AmplifyShaderEditor
 		private bool m_checkInvalidConnections = false;
 		private bool m_afterDeserializeFlag = true;
 		private ParentGraph m_customGraph = null;
-		
+
 		// UI 
 		private Rect m_graphArea;
 		private Texture2D m_graphBgTexture;
@@ -115,6 +115,7 @@ namespace AmplifyShaderEditor
 
 		private bool m_altDragStarted = false;
 		private bool m_altPressDown = false;
+		private bool m_altAvailable = true;
 
 		// Events
 		private Vector3 m_currentMousePos;
@@ -256,9 +257,15 @@ namespace AmplifyShaderEditor
 		[SerializeField]
 		private bool m_openedAssetFromNode = false;
 
-
 		private bool m_nodesLoadedCorrectly = false;
 		private GUIContent NodesExceptionMessage = new GUIContent( "ASE is unable to load correctly due to some faulty other classes/plugin in your project. We advise to review all your imported plugins." );
+
+		private NodeWireReferencesUtils m_wireReferenceUtils = new NodeWireReferencesUtils();
+
+		private ParentNode m_nodeToFocus = null;
+		private float m_zoomToFocus = 1.0f;
+		private bool m_selectNodeToFocus = true;
+		private bool m_isLoading = false;
 
 		// Unity Menu item
 		[MenuItem( "Window/Amplify Shader Editor/Open Canvas" )]
@@ -279,10 +286,10 @@ namespace AmplifyShaderEditor
 			}
 		}
 
-		public static string GenerateTabTitle(string original, bool modified = false )
+		public static string GenerateTabTitle( string original, bool modified = false )
 		{
 			GUIContent content = new GUIContent( original );
-			GUIStyle tabStyle = new GUIStyle( (GUIStyle)"dragtabdropwindow" );//  GUI.skin.FindStyle( "dragtabdropwindow" );
+			GUIStyle tabStyle = new GUIStyle( ( GUIStyle ) "dragtabdropwindow" );//  GUI.skin.FindStyle( "dragtabdropwindow" );
 			string finalTitle = string.Empty;
 			bool addEllipsis = false;
 			for ( int i = 1; i <= original.Length; i++ )
@@ -309,7 +316,7 @@ namespace AmplifyShaderEditor
 
 		public static void ConvertShaderToASE( Shader shader )
 		{
-			if (IOUtils.AllOpenedWindows.Count > 0 )
+			if ( IOUtils.AllOpenedWindows.Count > 0 )
 			{
 				AmplifyShaderEditorWindow openedTab = null;
 				for ( int i = 0; i < IOUtils.AllOpenedWindows.Count; i++ )
@@ -366,12 +373,13 @@ namespace AmplifyShaderEditor
 					}
 				}
 
-				if( openedTab != null)
+				if ( openedTab != null )
 				{
 					openedTab.wantsMouseMove = true;
 					openedTab.ShowTab();
 					UIUtils.CurrentWindow = openedTab;
-				} else
+				}
+				else
 				{
 					EditorWindow openedWindow = AmplifyShaderEditorWindow.GetWindow<AmplifyShaderEditorWindow>();
 					AmplifyShaderEditorWindow currentWindow = CreateTab();
@@ -445,7 +453,7 @@ namespace AmplifyShaderEditor
 
 		public static AmplifyShaderEditorWindow OpenWindow( string title = null, Texture icon = null )
 		{
-			AmplifyShaderEditorWindow currentWindow = (AmplifyShaderEditorWindow)AmplifyShaderEditorWindow.GetWindow( typeof( AmplifyShaderEditorWindow ), false );
+			AmplifyShaderEditorWindow currentWindow = ( AmplifyShaderEditorWindow ) AmplifyShaderEditorWindow.GetWindow( typeof( AmplifyShaderEditorWindow ), false );
 			currentWindow.minSize = new Vector2( ( Constants.MINIMIZE_WINDOW_LOCK_SIZE - 150 ), 270 );
 			currentWindow.wantsMouseMove = true;
 			if ( title != null )
@@ -455,7 +463,7 @@ namespace AmplifyShaderEditor
 			return currentWindow;
 		}
 
-		public static AmplifyShaderEditorWindow CreateTab( string title = null, Texture icon = null)
+		public static AmplifyShaderEditorWindow CreateTab( string title = null, Texture icon = null )
 		{
 			AmplifyShaderEditorWindow currentWindow = EditorWindow.CreateInstance<AmplifyShaderEditorWindow>();
 			currentWindow.minSize = new Vector2( ( Constants.MINIMIZE_WINDOW_LOCK_SIZE - 150 ), 270 );
@@ -682,6 +690,9 @@ namespace AmplifyShaderEditor
 
 			m_toolsWindow = new ToolsWindow( this );
 			m_toolsWindow.ToolButtonPressedEvt += OnToolButtonPressed;
+
+			m_mainGraphInstance.OnNodeRemovedEvent += m_toolsWindow.OnNodeRemovedFromGraph;
+
 			m_registeredMenus.Add( m_toolsWindow );
 
 			m_palettePopup = new PalettePopUp();
@@ -801,7 +812,7 @@ namespace AmplifyShaderEditor
 			m_genericMessageContent = null;
 
 			m_dragAndDropTool = null;
-			
+
 			m_openedShaderFunction = null;
 
 			UIUtils.CurrentWindow = null;
@@ -946,9 +957,9 @@ namespace AmplifyShaderEditor
 			ProjectWindowUtil.StartNameEditingIfProjectWindowExists( asset.GetInstanceID(), endNameEditAction, assetPathAndName, AssetPreview.GetMiniThumbnail( asset ), null );
 		}
 
-		public void UpdateTabTitle(string newTitle, bool modified )
+		public void UpdateTabTitle( string newTitle, bool modified )
 		{
-			if( !(m_currentTitle.Equals(newTitle) && m_currentTitleMod == modified) )
+			if ( !( m_currentTitle.Equals( newTitle ) && m_currentTitleMod == modified ) )
 			{
 				this.titleContent.text = GenerateTabTitle( newTitle, modified );
 			}
@@ -1164,7 +1175,7 @@ namespace AmplifyShaderEditor
 			UIUtils.DirtyMask = false;
 			m_mainGraphInstance.CreateNewEmptyFunction( shaderFunction );
 			m_mainGraphInstance.CurrentShaderFunction = shaderFunction;
-			
+
 			m_lastOpenedLocation = AssetDatabase.GetAssetPath( shaderFunction ); //string.Empty;
 			UIUtils.DirtyMask = true;
 			//return m_mainGraphInstance.CurrentMasterNode.CurrentShader;
@@ -1182,7 +1193,7 @@ namespace AmplifyShaderEditor
 				return false;
 			}
 
-			
+
 			Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
 			m_customGraph = null;
@@ -1450,8 +1461,16 @@ namespace AmplifyShaderEditor
 			}
 		}
 
-		public void FocusOnNode( ParentNode node, float zoom, bool selectNode )
+		public void FocusOnNode( ParentNode node, float zoom, bool selectNode, bool late = false )
 		{
+			if ( late )
+			{
+				m_nodeToFocus = node;
+				m_zoomToFocus = zoom;
+				m_selectNodeToFocus = selectNode;
+				return;
+			}
+
 			if ( selectNode )
 			{
 				m_mainGraphInstance.SelectNode( node, false, false );
@@ -1651,9 +1670,9 @@ namespace AmplifyShaderEditor
 			if ( m_currentEvent.modifiers != EventModifiers.Shift && m_currentEvent.modifiers != EventModifiers.Control )
 				m_mainGraphInstance.DeSelectAll();
 
-			if ( UIUtils.ValidReferences() )
+			if ( m_wireReferenceUtils.ValidReferences() )
 			{
-				UIUtils.InvalidateReferences();
+				m_wireReferenceUtils.InvalidateReferences();
 				return;
 			}
 
@@ -1718,11 +1737,11 @@ namespace AmplifyShaderEditor
 				}
 			}
 
-			if ( !UIUtils.ValidReferences() )
+			if ( !m_wireReferenceUtils.ValidReferences() )
 			{
 				if ( m_mouseDownOnValidArea && m_insideEditorWindow )
 				{
-					if ( m_currentEvent.control )
+					if ( m_currentEvent.control && m_currentEvent.shift )
 					{
 						m_mainGraphInstance.MoveSelectedNodes( m_cameraZoom * m_currentEvent.delta, true );
 					}
@@ -1742,7 +1761,7 @@ namespace AmplifyShaderEditor
 					Vector2 currentPortPos = new Vector2();
 					Vector2 mousePos = TranformedMousePos;
 
-					if ( UIUtils.InputPortReference.IsValid )
+					if ( m_wireReferenceUtils.InputPortReference.IsValid )
 					{
 						OutputPort currentPort = null;
 						float smallestDistance = float.MaxValue;
@@ -1774,15 +1793,15 @@ namespace AmplifyShaderEditor
 
 						if ( currentPort != null && currentPort.Available && ( smallestDistance < Constants.SNAP_SQR_DIST || currentPort.InsideActiveArea( ( mousePos + m_cameraOffset ) / m_cameraZoom ) ) )
 						{
-							UIUtils.ActivateSnap( smallestPosition, currentPort );
+							m_wireReferenceUtils.ActivateSnap( smallestPosition, currentPort );
 						}
 						else
 						{
-							UIUtils.DeactivateSnap();
+							m_wireReferenceUtils.DeactivateSnap();
 						}
 					}
 
-					if ( UIUtils.OutputPortReference.IsValid )
+					if ( m_wireReferenceUtils.OutputPortReference.IsValid )
 					{
 						InputPort currentPort = null;
 						float smallestDistance = float.MaxValue;
@@ -1813,17 +1832,17 @@ namespace AmplifyShaderEditor
 						}
 						if ( currentPort != null && currentPort.Available && ( smallestDistance < Constants.SNAP_SQR_DIST || currentPort.InsideActiveArea( ( mousePos + m_cameraOffset ) / m_cameraZoom ) ) )
 						{
-							UIUtils.ActivateSnap( smallestPosition, currentPort );
+							m_wireReferenceUtils.ActivateSnap( smallestPosition, currentPort );
 						}
 						else
 						{
-							UIUtils.DeactivateSnap();
+							m_wireReferenceUtils.DeactivateSnap();
 						}
 					}
 				}
-				else if ( UIUtils.SnapEnabled )
+				else if ( m_wireReferenceUtils.SnapEnabled )
 				{
-					UIUtils.DeactivateSnap();
+					m_wireReferenceUtils.DeactivateSnap();
 				}
 			}
 			UseCurrentEvent();
@@ -1839,22 +1858,22 @@ namespace AmplifyShaderEditor
 				m_mainGraphInstance.MultipleSelection( m_multipleSelectionArea, ( m_currentEvent.modifiers == EventModifiers.Shift || m_currentEvent.modifiers == EventModifiers.Control ), true );
 			}
 
-			if ( UIUtils.ValidReferences() )
+			if ( m_wireReferenceUtils.ValidReferences() )
 			{
 				//Check if there is some kind of port beneath the mouse ... if so connect to it
-				ParentNode targetNode = UIUtils.SnapEnabled ? m_mainGraphInstance.GetNode( UIUtils.SnapPort.NodeId ) : m_mainGraphInstance.CheckNodeAt( m_currentMousePos );
+				ParentNode targetNode = m_wireReferenceUtils.SnapEnabled ? m_mainGraphInstance.GetNode( m_wireReferenceUtils.SnapPort.NodeId ) : m_mainGraphInstance.CheckNodeAt( m_currentMousePos );
 				if ( targetNode != null && targetNode.ConnStatus != NodeConnectionStatus.Island )
 				{
-					if ( UIUtils.InputPortReference.IsValid && UIUtils.InputPortReference.NodeId != targetNode.UniqueId )
+					if ( m_wireReferenceUtils.InputPortReference.IsValid && m_wireReferenceUtils.InputPortReference.NodeId != targetNode.UniqueId )
 					{
-						OutputPort outputPort = UIUtils.SnapEnabled ? targetNode.GetOutputPortByUniqueId( UIUtils.SnapPort.PortId ) : targetNode.CheckOutputPortAt( m_currentMousePos );
-						if ( outputPort != null && !outputPort.Locked && ( !UIUtils.InputPortReference.TypeLocked ||
-													UIUtils.InputPortReference.DataType == WirePortDataType.OBJECT ||
-													( UIUtils.InputPortReference.TypeLocked && outputPort.DataType == UIUtils.InputPortReference.DataType ) ) )
+						OutputPort outputPort = m_wireReferenceUtils.SnapEnabled ? targetNode.GetOutputPortByUniqueId( m_wireReferenceUtils.SnapPort.PortId ) : targetNode.CheckOutputPortAt( m_currentMousePos );
+						if ( outputPort != null && !outputPort.Locked && ( !m_wireReferenceUtils.InputPortReference.TypeLocked ||
+													m_wireReferenceUtils.InputPortReference.DataType == WirePortDataType.OBJECT ||
+													( m_wireReferenceUtils.InputPortReference.TypeLocked && outputPort.DataType == m_wireReferenceUtils.InputPortReference.DataType ) ) )
 						{
 
-							ParentNode originNode = m_mainGraphInstance.GetNode( UIUtils.InputPortReference.NodeId );
-							InputPort inputPort = originNode.GetInputPortByUniqueId( UIUtils.InputPortReference.PortId );
+							ParentNode originNode = m_mainGraphInstance.GetNode( m_wireReferenceUtils.InputPortReference.NodeId );
+							InputPort inputPort = originNode.GetInputPortByUniqueId( m_wireReferenceUtils.InputPortReference.PortId );
 							UIUtils.MarkUndoAction();
 							Undo.RegisterCompleteObjectUndo( this, Constants.UndoCreateConnectionId );
 							Undo.RecordObject( originNode, Constants.UndoCreateConnectionId );
@@ -1863,7 +1882,7 @@ namespace AmplifyShaderEditor
 							if ( !inputPort.CheckValidType( outputPort.DataType ) )
 							{
 								UIUtils.ShowIncompatiblePortMessage( true, originNode, inputPort, targetNode, outputPort );
-								UIUtils.InvalidateReferences();
+								m_wireReferenceUtils.InvalidateReferences();
 								UseCurrentEvent();
 								return;
 							}
@@ -1871,19 +1890,19 @@ namespace AmplifyShaderEditor
 							if ( !outputPort.CheckValidType( inputPort.DataType ) )
 							{
 								UIUtils.ShowIncompatiblePortMessage( false, targetNode, outputPort, originNode, inputPort );
-								UIUtils.InvalidateReferences();
+								m_wireReferenceUtils.InvalidateReferences();
 								UseCurrentEvent();
 								return;
 							}
 
 							inputPort.DummyAdd( outputPort.NodeId, outputPort.PortId );
-							outputPort.DummyAdd( UIUtils.InputPortReference.NodeId, UIUtils.InputPortReference.PortId );
+							outputPort.DummyAdd( m_wireReferenceUtils.InputPortReference.NodeId, m_wireReferenceUtils.InputPortReference.PortId );
 
 							if ( UIUtils.DetectNodeLoopsFrom( originNode, new Dictionary<int, int>() ) )
 							{
 								inputPort.DummyRemove();
 								outputPort.DummyRemove();
-								UIUtils.InvalidateReferences();
+								m_wireReferenceUtils.InvalidateReferences();
 								ShowMessage( "Infinite Loop detected" );
 								UseCurrentEvent();
 								return;
@@ -1894,35 +1913,35 @@ namespace AmplifyShaderEditor
 
 							if ( inputPort.IsConnected )
 							{
-								DeleteConnection( true, UIUtils.InputPortReference.NodeId, UIUtils.InputPortReference.PortId, true, false );
+								DeleteConnection( true, m_wireReferenceUtils.InputPortReference.NodeId, m_wireReferenceUtils.InputPortReference.PortId, true, false );
 							}
 
 							//link output to input
-							if ( outputPort.ConnectTo( UIUtils.InputPortReference.NodeId, UIUtils.InputPortReference.PortId, UIUtils.InputPortReference.DataType, UIUtils.InputPortReference.TypeLocked ) )
-								targetNode.OnOutputPortConnected( outputPort.PortId, UIUtils.InputPortReference.NodeId, UIUtils.InputPortReference.PortId );
+							if ( outputPort.ConnectTo( m_wireReferenceUtils.InputPortReference.NodeId, m_wireReferenceUtils.InputPortReference.PortId, m_wireReferenceUtils.InputPortReference.DataType, m_wireReferenceUtils.InputPortReference.TypeLocked ) )
+								targetNode.OnOutputPortConnected( outputPort.PortId, m_wireReferenceUtils.InputPortReference.NodeId, m_wireReferenceUtils.InputPortReference.PortId );
 
 							//link input to output
-							if ( inputPort.ConnectTo( outputPort.NodeId, outputPort.PortId, outputPort.DataType, UIUtils.InputPortReference.TypeLocked ) )
-								originNode.OnInputPortConnected( UIUtils.InputPortReference.PortId, targetNode.UniqueId, outputPort.PortId );
+							if ( inputPort.ConnectTo( outputPort.NodeId, outputPort.PortId, outputPort.DataType, m_wireReferenceUtils.InputPortReference.TypeLocked ) )
+								originNode.OnInputPortConnected( m_wireReferenceUtils.InputPortReference.PortId, targetNode.UniqueId, outputPort.PortId );
 							m_mainGraphInstance.MarkWireHighlights();
 						}
-						else if ( outputPort != null && UIUtils.InputPortReference.TypeLocked && UIUtils.InputPortReference.DataType != outputPort.DataType )
+						else if ( outputPort != null && m_wireReferenceUtils.InputPortReference.TypeLocked && m_wireReferenceUtils.InputPortReference.DataType != outputPort.DataType )
 						{
-							ShowMessage( "Attempting to connect a port locked to type " + UIUtils.InputPortReference.DataType + " into a port of type " + outputPort.DataType );
+							ShowMessage( "Attempting to connect a port locked to type " + m_wireReferenceUtils.InputPortReference.DataType + " into a port of type " + outputPort.DataType );
 						}
 						ShaderIsModified = true;
 						SetSaveIsDirty();
 					}
 
-					if ( UIUtils.OutputPortReference.IsValid && UIUtils.OutputPortReference.NodeId != targetNode.UniqueId )
+					if ( m_wireReferenceUtils.OutputPortReference.IsValid && m_wireReferenceUtils.OutputPortReference.NodeId != targetNode.UniqueId )
 					{
-						InputPort inputPort = UIUtils.SnapEnabled ? targetNode.GetInputPortByUniqueId( UIUtils.SnapPort.PortId ) : targetNode.CheckInputPortAt( m_currentMousePos );
+						InputPort inputPort = m_wireReferenceUtils.SnapEnabled ? targetNode.GetInputPortByUniqueId( m_wireReferenceUtils.SnapPort.PortId ) : targetNode.CheckInputPortAt( m_currentMousePos );
 						if ( inputPort != null && !inputPort.Locked && ( !inputPort.TypeLocked ||
 													 inputPort.DataType == WirePortDataType.OBJECT ||
-													 ( inputPort.TypeLocked && inputPort.DataType == UIUtils.OutputPortReference.DataType ) ) )
+													 ( inputPort.TypeLocked && inputPort.DataType == m_wireReferenceUtils.OutputPortReference.DataType ) ) )
 						{
-							ParentNode originNode = m_mainGraphInstance.GetNode( UIUtils.OutputPortReference.NodeId );
-							OutputPort outputPort = originNode.GetOutputPortByUniqueId( UIUtils.OutputPortReference.PortId );
+							ParentNode originNode = m_mainGraphInstance.GetNode( m_wireReferenceUtils.OutputPortReference.NodeId );
+							OutputPort outputPort = originNode.GetOutputPortByUniqueId( m_wireReferenceUtils.OutputPortReference.PortId );
 
 							UIUtils.MarkUndoAction();
 							Undo.RegisterCompleteObjectUndo( this, Constants.UndoCreateConnectionId );
@@ -1932,7 +1951,7 @@ namespace AmplifyShaderEditor
 							if ( !inputPort.CheckValidType( outputPort.DataType ) )
 							{
 								UIUtils.ShowIncompatiblePortMessage( true, targetNode, inputPort, originNode, outputPort );
-								UIUtils.InvalidateReferences();
+								m_wireReferenceUtils.InvalidateReferences();
 								UseCurrentEvent();
 								return;
 							}
@@ -1940,18 +1959,18 @@ namespace AmplifyShaderEditor
 							if ( !outputPort.CheckValidType( inputPort.DataType ) )
 							{
 								UIUtils.ShowIncompatiblePortMessage( false, originNode, outputPort, targetNode, inputPort );
-								UIUtils.InvalidateReferences();
+								m_wireReferenceUtils.InvalidateReferences();
 								UseCurrentEvent();
 								return;
 							}
 
-							inputPort.DummyAdd( UIUtils.OutputPortReference.NodeId, UIUtils.OutputPortReference.PortId );
+							inputPort.DummyAdd( m_wireReferenceUtils.OutputPortReference.NodeId, m_wireReferenceUtils.OutputPortReference.PortId );
 							outputPort.DummyAdd( inputPort.NodeId, inputPort.PortId );
 							if ( UIUtils.DetectNodeLoopsFrom( targetNode, new Dictionary<int, int>() ) )
 							{
 								inputPort.DummyRemove();
 								outputPort.DummyRemove();
-								UIUtils.InvalidateReferences();
+								m_wireReferenceUtils.InvalidateReferences();
 								ShowMessage( "Infinite Loop detected" );
 								UseCurrentEvent();
 								return;
@@ -1962,13 +1981,13 @@ namespace AmplifyShaderEditor
 
 							if ( inputPort.IsConnected )
 							{
-								if ( m_currentEvent.control && UIUtils.SwitchPortReference.IsValid )
+								if ( m_currentEvent.control && m_wireReferenceUtils.SwitchPortReference.IsValid )
 								{
 									ParentNode oldOutputNode = UIUtils.GetNode( inputPort.GetConnection( 0 ).NodeId );
 									OutputPort oldOutputPort = oldOutputNode.GetOutputPortByUniqueId( inputPort.GetConnection( 0 ).PortId );
 
-									ParentNode switchNode = UIUtils.GetNode( UIUtils.SwitchPortReference.NodeId );
-									InputPort switchPort = switchNode.GetInputPortByUniqueId( UIUtils.SwitchPortReference.PortId );
+									ParentNode switchNode = UIUtils.GetNode( m_wireReferenceUtils.SwitchPortReference.NodeId );
+									InputPort switchPort = switchNode.GetInputPortByUniqueId( m_wireReferenceUtils.SwitchPortReference.PortId );
 
 									switchPort.DummyAdd( oldOutputPort.NodeId, oldOutputPort.PortId );
 									oldOutputPort.DummyAdd( switchPort.NodeId, switchPort.PortId );
@@ -1976,7 +1995,7 @@ namespace AmplifyShaderEditor
 									{
 										switchPort.DummyRemove();
 										oldOutputPort.DummyRemove();
-										UIUtils.InvalidateReferences();
+										m_wireReferenceUtils.InvalidateReferences();
 										ShowMessage( "Infinite Loop detected" );
 										UseCurrentEvent();
 										return;
@@ -1997,32 +2016,32 @@ namespace AmplifyShaderEditor
 
 
 							//link input to output
-							if ( inputPort.ConnectTo( UIUtils.OutputPortReference.NodeId, UIUtils.OutputPortReference.PortId, UIUtils.OutputPortReference.DataType, inputPort.TypeLocked ) )
-								targetNode.OnInputPortConnected( inputPort.PortId, UIUtils.OutputPortReference.NodeId, UIUtils.OutputPortReference.PortId );
+							if ( inputPort.ConnectTo( m_wireReferenceUtils.OutputPortReference.NodeId, m_wireReferenceUtils.OutputPortReference.PortId, m_wireReferenceUtils.OutputPortReference.DataType, inputPort.TypeLocked ) )
+								targetNode.OnInputPortConnected( inputPort.PortId, m_wireReferenceUtils.OutputPortReference.NodeId, m_wireReferenceUtils.OutputPortReference.PortId );
 							//link output to input
 
 							if ( outputPort.ConnectTo( inputPort.NodeId, inputPort.PortId, inputPort.DataType, inputPort.TypeLocked ) )
-								originNode.OnOutputPortConnected( UIUtils.OutputPortReference.PortId, targetNode.UniqueId, inputPort.PortId );
+								originNode.OnOutputPortConnected( m_wireReferenceUtils.OutputPortReference.PortId, targetNode.UniqueId, inputPort.PortId );
 							m_mainGraphInstance.MarkWireHighlights();
 						}
-						else if ( inputPort != null && inputPort.TypeLocked && inputPort.DataType != UIUtils.OutputPortReference.DataType )
+						else if ( inputPort != null && inputPort.TypeLocked && inputPort.DataType != m_wireReferenceUtils.OutputPortReference.DataType )
 						{
-							ShowMessage( "Attempting to connect a " + UIUtils.OutputPortReference.DataType + "to a port locked to type " + inputPort.DataType );
+							ShowMessage( "Attempting to connect a " + m_wireReferenceUtils.OutputPortReference.DataType + "to a port locked to type " + inputPort.DataType );
 						}
 						ShaderIsModified = true;
 						SetSaveIsDirty();
 					}
-					UIUtils.InvalidateReferences();
+					m_wireReferenceUtils.InvalidateReferences();
 				}
 				else
 				{
 					if ( UIUtils.ShowContextOnPick )
 						m_contextPalette.Show( m_currentMousePos2D, m_cameraInfo );
 					else
-						UIUtils.InvalidateReferences();
+						m_wireReferenceUtils.InvalidateReferences();
 				}
 			}
-			else if ( m_currentEvent.alt && CurrentGraph.SelectedNodes.Count == 1 )
+			else if ( m_currentEvent.alt && m_altAvailable && CurrentGraph.SelectedNodes.Count == 1 )
 			{
 				List<WireBezierReference> wireRefs = m_mainGraphInstance.GetWireBezierListInPos( m_currentMousePos2D );
 				if ( wireRefs != null && wireRefs.Count > 0 )
@@ -2057,7 +2076,9 @@ namespace AmplifyShaderEditor
 						if ( outNode != null && outNode.GetType() == typeof( WireNode ) )
 							startTangent = startPos - ( ( outNode as WireNode ).TangentDirection ) * mag * 0.33f;
 
-						float dist = HandleUtility.DistancePointBezier( m_currentMousePos, startPos, endPos, startTangent, endTangent );
+						//Vector2 pos = ( CurrentGraph.SelectedNodes[0].CenterPosition + m_cameraOffset ) / m_cameraZoom;
+
+						float dist = HandleUtility.DistancePointBezier( /*pos*/ m_currentMousePos, startPos, endPos, startTangent, endTangent );
 						if ( dist < 40 )
 						{
 							if ( dist < closestDist )
@@ -2104,7 +2125,7 @@ namespace AmplifyShaderEditor
 				OutputPort outPort = outNode.GetOutputPortByUniqueId( outPortId );
 				if ( inPort != null && outPort != null )
 				{
-					if( registerUndo )
+					if ( registerUndo )
 					{
 						Undo.RegisterCompleteObjectUndo( this, Constants.UndoCreateConnectionId );
 						Undo.RecordObject( inNode, Constants.UndoCreateConnectionId );
@@ -2280,7 +2301,7 @@ namespace AmplifyShaderEditor
 
 			return nodeFind;
 		}
-		
+
 		public void SetDelayedMaterialMode( Material material )
 		{
 			if ( material == null )
@@ -2396,6 +2417,10 @@ namespace AmplifyShaderEditor
 					UseCurrentEvent();
 				}
 				return;
+			}
+			else if ( m_nodeParametersWindow.IsResizing || m_paletteWindow.IsResizing )
+			{
+				m_mouseDownOnValidArea = false;
 			}
 
 			int controlID = GUIUtility.GetControlID( FocusType.Passive );
@@ -2668,6 +2693,7 @@ namespace AmplifyShaderEditor
 			if ( !m_altPressDown && ( OnKeyboardPress( KeyCode.LeftAlt ) || OnKeyboardPress( KeyCode.RightAlt ) || OnKeyboardPress( KeyCode.AltGr ) ) )
 			{
 				m_altPressDown = true;
+				m_altAvailable = true;
 				m_altKeyStartPos = m_currentMousePos2D;
 			}
 
@@ -2709,7 +2735,7 @@ namespace AmplifyShaderEditor
 		{
 			m_lostFocus = true;
 			m_multipleSelectionActive = false;
-			UIUtils.InvalidateReferences();
+			m_wireReferenceUtils.InvalidateReferences();
 			m_genericMessageUI.CleanUpMessageStack();
 			m_nodeParametersWindow.OnLostFocus();
 			m_paletteWindow.OnLostFocus();
@@ -2831,6 +2857,7 @@ namespace AmplifyShaderEditor
 					m_clipboard.CurrentClipboardStrData[ i ].NewNodeId = node.UniqueId;
 					Vector2 pos = node.Vec2Position;
 					node.Vec2Position = pos + deltaPos + m_copyPasteDeltaMul * Constants.CopyPasteDeltaPos;
+					node.RefreshExternalReferences();
 					m_mainGraphInstance.SelectNode( node, true, false );
 				}
 			}
@@ -3136,6 +3163,7 @@ namespace AmplifyShaderEditor
 						}
 
 						graph.ForceSignalPropagationOnMasterNode();
+						graph.RefreshExternalReferences();
 
 						//if ( shaderFunction != null )
 						//{
@@ -3188,6 +3216,7 @@ namespace AmplifyShaderEditor
 
 		public ShaderLoadResult LoadFromDisk( string pathname, AmplifyShaderFunction shaderFunction = null )
 		{
+			m_isLoading = true;
 			Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
 			FullCleanUndoStack();
@@ -3341,10 +3370,17 @@ namespace AmplifyShaderEditor
 											attribs = m_contextMenu.GetDeprecatedNodeAttributesForType( type );
 											if ( attribs != null )
 											{
-												if ( attribs.Deprecated && attribs.DeprecatedAlternativeType != null )
+												if ( attribs.Deprecated )
 												{
-													type = attribs.DeprecatedAlternativeType;
-													ShowMessage( string.Format( "Node {0} is deprecated and was replaced by {1} ", attribs.Name, attribs.DeprecatedAlternative ) );
+													if ( attribs.DeprecatedAlternativeType != null )
+													{
+														type = attribs.DeprecatedAlternativeType;
+														ShowMessage( string.Format( "Node {0} is deprecated and was replaced by {1} ", attribs.Name, attribs.DeprecatedAlternative ) );
+													}
+													else
+													{
+														ShowMessage( string.Format( Constants.DeprecatedMessageStr, attribs.Name, attribs.DeprecatedAlternative ), MessageSeverity.Normal, false );
+													}
 												}
 											}
 										}
@@ -3550,8 +3586,11 @@ namespace AmplifyShaderEditor
 			m_checkInvalidConnections = true;
 
 			m_mainGraphInstance.UpdateRegisters();
+			m_mainGraphInstance.RefreshExternalReferences();
 
 			Thread.CurrentThread.CurrentCulture = Thread.CurrentThread.CurrentUICulture;
+
+			m_isLoading = false;
 			return loadResult;
 		}
 
@@ -3608,7 +3647,14 @@ namespace AmplifyShaderEditor
 			}
 			m_genericMessageContent.text += message;
 			Debug.Log( message );
-			ShowNotification( m_genericMessageContent );
+			try
+			{
+				ShowNotification( m_genericMessageContent );
+			}
+			catch ( Exception e )
+			{
+				Debug.LogException( e );
+			}
 		}
 
 		void OnGUI()
@@ -3621,7 +3667,7 @@ namespace AmplifyShaderEditor
 				UIUtils.InitMainSkin();
 				Init();
 			}
-			
+
 			Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
 			if ( m_refreshOnUndo )
@@ -3634,6 +3680,12 @@ namespace AmplifyShaderEditor
 			{
 				m_nodeParametersWindow.ForceUpdate = true;
 				m_previousShaderFunction = CurrentGraph.CurrentShaderFunction;
+			}
+
+			if ( m_nodeToFocus != null && Event.current.type == EventType.layout )
+			{
+				FocusOnNode( m_nodeToFocus, m_zoomToFocus, m_selectNodeToFocus );
+				m_nodeToFocus = null;
 			}
 
 			m_mainGraphInstance.OnDuplicateEventWrapper();
@@ -3741,7 +3793,7 @@ namespace AmplifyShaderEditor
 			m_graphArea.width = m_cameraInfo.width;
 			m_graphArea.height = m_cameraInfo.height;
 
-			m_autoPanDirActive = m_lmbPressed || m_forceAutoPanDir || m_multipleSelectionActive || UIUtils.ValidReferences();
+			m_autoPanDirActive = m_lmbPressed || m_forceAutoPanDir || m_multipleSelectionActive || m_wireReferenceUtils.ValidReferences();
 
 
 			// Need to use it in order to prevent Mismatched LayoutGroup on ValidateCommand when rendering nodes
@@ -3962,7 +4014,7 @@ namespace AmplifyShaderEditor
 					}
 				}
 				m_cameraOffset += autoPanDir;
-				if ( !UIUtils.ValidReferences() && m_insideEditorWindow )
+				if ( !m_wireReferenceUtils.ValidReferences() && m_insideEditorWindow )
 				{
 					m_mainGraphInstance.MoveSelectedNodes( -autoPanDir );
 				}
@@ -4056,7 +4108,14 @@ namespace AmplifyShaderEditor
 			UIUtils.CurrentWindow = cacheWindow;
 			if ( !m_nodesLoadedCorrectly )
 			{
-				ShowNotification( NodesExceptionMessage );
+				try
+				{
+					ShowNotification( NodesExceptionMessage );
+				}
+				catch ( Exception e )
+				{
+					Debug.LogException( e );
+				}
 			}
 		}
 
@@ -4130,7 +4189,7 @@ namespace AmplifyShaderEditor
 
 		void OnRefreshFunctionNodeEvent( FunctionNode node )
 		{
-			Debug.Log(node);
+			Debug.Log( node );
 		}
 
 		void OnMaterialUpdated( MasterNode masterNode )
@@ -4192,48 +4251,48 @@ namespace AmplifyShaderEditor
 			CheckZoomBoundaries( newPosition );
 
 			// Connect node if a wire is active 
-			if ( UIUtils.ValidReferences() )
+			if ( m_wireReferenceUtils.ValidReferences() )
 			{
-				if ( UIUtils.InputPortReference.IsValid )
+				if ( m_wireReferenceUtils.InputPortReference.IsValid )
 				{
-					ParentNode originNode = m_mainGraphInstance.GetNode( UIUtils.InputPortReference.NodeId );
-					OutputPort outputPort = node.GetFirstOutputPortOfType( UIUtils.InputPortReference.DataType, true );
-					if ( outputPort != null && ( !UIUtils.InputPortReference.TypeLocked ||
-												UIUtils.InputPortReference.DataType == WirePortDataType.OBJECT ||
-												( UIUtils.InputPortReference.TypeLocked && outputPort.DataType == UIUtils.InputPortReference.DataType ) ) )
+					ParentNode originNode = m_mainGraphInstance.GetNode( m_wireReferenceUtils.InputPortReference.NodeId );
+					OutputPort outputPort = node.GetFirstOutputPortOfType( m_wireReferenceUtils.InputPortReference.DataType, true );
+					if ( outputPort != null && ( !m_wireReferenceUtils.InputPortReference.TypeLocked ||
+												m_wireReferenceUtils.InputPortReference.DataType == WirePortDataType.OBJECT ||
+												( m_wireReferenceUtils.InputPortReference.TypeLocked && outputPort.DataType == m_wireReferenceUtils.InputPortReference.DataType ) ) )
 					{
 
 						//link output to input
-						if ( outputPort.ConnectTo( UIUtils.InputPortReference.NodeId, UIUtils.InputPortReference.PortId, UIUtils.InputPortReference.DataType, UIUtils.InputPortReference.TypeLocked ) )
-							node.OnOutputPortConnected( outputPort.PortId, UIUtils.InputPortReference.NodeId, UIUtils.InputPortReference.PortId );
+						if ( outputPort.ConnectTo( m_wireReferenceUtils.InputPortReference.NodeId, m_wireReferenceUtils.InputPortReference.PortId, m_wireReferenceUtils.InputPortReference.DataType, m_wireReferenceUtils.InputPortReference.TypeLocked ) )
+							node.OnOutputPortConnected( outputPort.PortId, m_wireReferenceUtils.InputPortReference.NodeId, m_wireReferenceUtils.InputPortReference.PortId );
 
 						//link input to output
-						if ( originNode.GetInputPortByUniqueId( UIUtils.InputPortReference.PortId ).ConnectTo( outputPort.NodeId, outputPort.PortId, UIUtils.InputPortReference.DataType, UIUtils.InputPortReference.TypeLocked ) )
-							originNode.OnInputPortConnected( UIUtils.InputPortReference.PortId, node.UniqueId, outputPort.PortId );
+						if ( originNode.GetInputPortByUniqueId( m_wireReferenceUtils.InputPortReference.PortId ).ConnectTo( outputPort.NodeId, outputPort.PortId, m_wireReferenceUtils.InputPortReference.DataType, m_wireReferenceUtils.InputPortReference.TypeLocked ) )
+							originNode.OnInputPortConnected( m_wireReferenceUtils.InputPortReference.PortId, node.UniqueId, outputPort.PortId );
 					}
 				}
 
-				if ( UIUtils.OutputPortReference.IsValid )
+				if ( m_wireReferenceUtils.OutputPortReference.IsValid )
 				{
-					ParentNode originNode = m_mainGraphInstance.GetNode( UIUtils.OutputPortReference.NodeId );
-					InputPort inputPort = node.GetFirstInputPortOfType( UIUtils.OutputPortReference.DataType, true );
+					ParentNode originNode = m_mainGraphInstance.GetNode( m_wireReferenceUtils.OutputPortReference.NodeId );
+					InputPort inputPort = node.GetFirstInputPortOfType( m_wireReferenceUtils.OutputPortReference.DataType, true );
 
 					if ( inputPort != null && ( !inputPort.TypeLocked ||
 													inputPort.DataType == WirePortDataType.OBJECT ||
-													( inputPort.TypeLocked && inputPort.DataType == UIUtils.OutputPortReference.DataType ) ) )
+													( inputPort.TypeLocked && inputPort.DataType == m_wireReferenceUtils.OutputPortReference.DataType ) ) )
 					{
 
 						inputPort.InvalidateAllConnections();
 						//link input to output
-						if ( inputPort.ConnectTo( UIUtils.OutputPortReference.NodeId, UIUtils.OutputPortReference.PortId, UIUtils.OutputPortReference.DataType, inputPort.TypeLocked ) )
-							node.OnInputPortConnected( inputPort.PortId, UIUtils.OutputPortReference.NodeId, UIUtils.OutputPortReference.PortId );
+						if ( inputPort.ConnectTo( m_wireReferenceUtils.OutputPortReference.NodeId, m_wireReferenceUtils.OutputPortReference.PortId, m_wireReferenceUtils.OutputPortReference.DataType, inputPort.TypeLocked ) )
+							node.OnInputPortConnected( inputPort.PortId, m_wireReferenceUtils.OutputPortReference.NodeId, m_wireReferenceUtils.OutputPortReference.PortId );
 						//link output to input
 
-						if ( originNode.GetOutputPortByUniqueId( UIUtils.OutputPortReference.PortId ).ConnectTo( inputPort.NodeId, inputPort.PortId, UIUtils.OutputPortReference.DataType, inputPort.TypeLocked ) )
-							originNode.OnOutputPortConnected( UIUtils.OutputPortReference.PortId, node.UniqueId, inputPort.PortId );
+						if ( originNode.GetOutputPortByUniqueId( m_wireReferenceUtils.OutputPortReference.PortId ).ConnectTo( inputPort.NodeId, inputPort.PortId, m_wireReferenceUtils.OutputPortReference.DataType, inputPort.TypeLocked ) )
+							originNode.OnOutputPortConnected( m_wireReferenceUtils.OutputPortReference.PortId, node.UniqueId, inputPort.PortId );
 					}
 				}
-				UIUtils.InvalidateReferences();
+				m_wireReferenceUtils.InvalidateReferences();
 
 				for ( int i = 0; i < m_mainGraphInstance.VisibleNodes.Count; i++ )
 				{
@@ -4354,7 +4413,7 @@ namespace AmplifyShaderEditor
 			EditorApplication.update -= IOUtils.UpdateIO;
 			for ( int i = 0; i < IOUtils.AllOpenedWindows.Count; i++ )
 			{
-				if( IOUtils.AllOpenedWindows[i] != this )
+				if ( IOUtils.AllOpenedWindows[ i ] != this )
 				{
 					EditorApplication.update += IOUtils.UpdateIO;
 					break;
@@ -4381,7 +4440,8 @@ namespace AmplifyShaderEditor
 						if ( material != null )
 						{
 							LoadDroppedObject( true, material.shader, material, null );
-						} else
+						}
+						else
 						{
 							AmplifyShaderFunction function = AssetDatabase.LoadAssetAtPath<AmplifyShaderFunction>( Lastpath );
 							if ( function != null )
@@ -4425,7 +4485,7 @@ namespace AmplifyShaderEditor
 			get { return m_customGraph; }
 			set { m_customGraph = value; }
 		}
-		
+
 		public ParentGraph CurrentGraph
 		{
 			get
@@ -4453,7 +4513,7 @@ namespace AmplifyShaderEditor
 			set
 			{
 				m_shaderIsModified = value && UIUtils.DirtyMask;
-				
+
 				m_toolsWindow.SetStateOnButton( ToolButtonType.Save, m_shaderIsModified ? 1 : 0 );
 				if ( !IsShaderFunctionWindow )
 				{
@@ -4466,7 +4526,7 @@ namespace AmplifyShaderEditor
 					{
 						m_toolsWindow.SetStateOnButton( ToolButtonType.Update, 1 );
 					}
-					if( m_mainGraphInstance.CurrentStandardSurface != null )
+					if ( m_mainGraphInstance.CurrentStandardSurface != null )
 						UpdateTabTitle( m_mainGraphInstance.CurrentStandardSurface.ShaderName, m_shaderIsModified );
 				}
 				else
@@ -4515,15 +4575,18 @@ namespace AmplifyShaderEditor
 					case ASESelectionMode.Shader:
 					{
 						m_toolsWindow.BorderStyle = UIUtils.GetCustomStyle( CustomStyle.ShaderBorder );
-					}break;
+					}
+					break;
 					case ASESelectionMode.Material:
 					{
 						m_toolsWindow.BorderStyle = UIUtils.GetCustomStyle( CustomStyle.MaterialBorder );
-					}break;
+					}
+					break;
 					case ASESelectionMode.ShaderFunction:
 					{
 						m_toolsWindow.BorderStyle = UIUtils.GetCustomStyle( CustomStyle.ShaderFunctionBorder );
-					}break;
+					}
+					break;
 				}
 			}
 		}
@@ -4540,7 +4603,7 @@ namespace AmplifyShaderEditor
 					RefreshAvaibleNodes();
 			}
 		}
-
+		public void InvalidateAlt() { m_altAvailable = false; }
 		public bool LmbPressed { get { return m_lmbPressed; } }
 		public PaletteWindow CurrentPaletteWindow { get { return m_paletteWindow; } }
 		public PreMadeShaders PreMadeShadersInstance { get { return m_preMadeShaders; } }
@@ -4571,7 +4634,9 @@ namespace AmplifyShaderEditor
 		public bool ExpandedRenderingPlatforms { get { return m_expandedRenderingPlatforms; } set { m_expandedRenderingPlatforms = value; } }
 		public bool ExpandedRenderingOptions { get { return m_expandedRenderingOptions; } set { m_expandedRenderingOptions = value; } }
 		public bool ExpandedProperties { get { return m_expandedProperties; } set { m_expandedProperties = value; } }
-		public bool NodesLoadedCorrectly { get { return m_nodesLoadedCorrectly; }set { m_nodesLoadedCorrectly = value; } }
+		public bool NodesLoadedCorrectly { get { return m_nodesLoadedCorrectly; } set { m_nodesLoadedCorrectly = value; } }
 		public double CurrentInactiveTime { get { return m_currentInactiveTime; } }
+		public NodeWireReferencesUtils WireReferenceUtils { get { return m_wireReferenceUtils; } }
+		public bool IsLoading { get { return m_isLoading; } }
 	}
 }

@@ -5,7 +5,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Depth Fade", "Generic", "Outputs a 0 - 1 gradient representing the distance between the surface of this object and geometry behind" )]
+	[NodeAttributes( "Depth Fade", "Surface Data", "Outputs a 0 - 1 gradient representing the distance between the surface of this object and geometry behind" )]
 	public sealed class DepthFade : ParentNode
 	{
 		protected override void CommonInit( int uniqueId )
@@ -33,9 +33,9 @@ namespace AmplifyShaderEditor
 			string screenDepth = "LinearEyeDepth(UNITY_SAMPLE_DEPTH(tex2Dproj(_CameraDepthTexture,UNITY_PROJ_COORD(" + screenPos + "))))";
 			string distance = m_inputPorts[ 0 ].GeneratePortInstructions( ref dataCollector );
 
-			dataCollector.AddToLocalVariables( UniqueId, "float screenDepth" + UniqueId + " = " + screenDepth + ";" );
-			dataCollector.AddToLocalVariables( UniqueId, "float distanceDepth" + UniqueId + " = abs( ( screenDepth" + UniqueId + " - LinearEyeDepth( " + screenPos + ".z/ " + screenPos + ".w ) ) / " + distance + " );" );
-			return "distanceDepth" + UniqueId;
+			dataCollector.AddToLocalVariables( UniqueId, "float screenDepth" + OutputId + " = " + screenDepth + ";" );
+			dataCollector.AddToLocalVariables( UniqueId, "float distanceDepth" + OutputId + " = abs( ( screenDepth" + OutputId + " - LinearEyeDepth( " + screenPos + ".z/ " + screenPos + ".w ) ) / ( " + distance + " ) );" );
+			return "distanceDepth" + OutputId;
 		}
 	}
 }

@@ -8,7 +8,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "[Deprecated] World Normal", "Surface Standard Inputs", "Vertex Normal World", null, KeyCode.None, true, true, "World Normal", typeof( WorldNormalVector ) )]
+	[NodeAttributes( "[Deprecated] World Normal", "Surface Data", "Vertex Normal World", null, KeyCode.None, true, true, "World Normal", typeof( WorldNormalVector ) )]
 	public sealed class WorldNormalInputsNode : SurfaceShaderINParentNode
 	{
 		private const string PerPixelLabelStr = "Per Pixel";
@@ -88,7 +88,7 @@ namespace AmplifyShaderEditor
 					}
 					if ( count > 1 )
 					{
-						string localVarName = "WorldNormal" + UniqueId;
+						string localVarName = "WorldNormal" + OutputId;
 						dataCollector.AddToLocalVariables( UniqueId, m_currentPrecisionType, m_outputPorts[ 0 ].DataType, localVarName, result );
 						return GetOutputVectorItem( 0, outputId, localVarName );
 					}

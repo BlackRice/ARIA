@@ -8,7 +8,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Inverse", "Matrix", "Inverse matrix of a matrix" )]
+	[NodeAttributes( "Inverse", "Matrix Operators", "Inverse matrix of a matrix" )]
 	public sealed class InverseOpNode : SingleInputOp
 	{
 		private string Inverse4x4Header = "Inverse4x4( {0} )";

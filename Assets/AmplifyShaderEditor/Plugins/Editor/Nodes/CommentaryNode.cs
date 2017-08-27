@@ -18,14 +18,15 @@ namespace AmplifyShaderEditor
 	[Serializable]
 	public sealed class CommentaryNode : ParentNode, ISerializationCallbackReceiver
 	{
+		private const string InfoText = "Press Alt + Left Mouse Click/Drag to make all Comment node area interactable.\nDouble click on the Comment at the node body to modify it directly from there.";
+
 		private const string CommentaryTitle = "Comment";
 		private const float BORDER_SIZE_X = 50;
 		private const float BORDER_SIZE_Y = 50;
 		private const float MIN_SIZE_X = 100;
 		private const float MIN_SIZE_Y = 100;
 		private const float COMMENTARY_BOX_HEIGHT = 30;
-
-
+		
 		private readonly Vector2 ResizeButtonPos = new Vector2( 1, 1 );
 
 		[SerializeField]
@@ -48,6 +49,8 @@ namespace AmplifyShaderEditor
 		[SerializeField]
 		private Rect m_resizeRightIconCoords;
 
+		[SerializeField]
+		private Rect m_auxHeaderPos;
 
 		private Texture2D m_resizeIconTex;
 
@@ -63,6 +66,9 @@ namespace AmplifyShaderEditor
 		private bool m_checkCommentText = true;
 		private bool m_checkTitleText = true;
 
+		private bool m_editPropertyNameMode = false;
+
+		public Color m_frameColor = Color.white;
 
 		private List<int> m_nodesIds = new List<int>();
 		protected override void CommonInit( int uniqueId )
@@ -74,12 +80,12 @@ namespace AmplifyShaderEditor
 			m_headerColor = UIUtils.GetColorFromCategory( "Commentary" );
 			m_connStatus = NodeConnectionStatus.Island;
 			m_textLabelWidth = 90;
-			m_autoWrapProperties = true;
 		}
+
 		protected override void OnUniqueIDAssigned()
 		{
 			base.OnUniqueIDAssigned();
-			m_focusName = CommentaryTitle + UniqueId;
+			m_focusName = CommentaryTitle + OutputId;
 		}
 
 		public void CreateFromSelectedNodes( Vector2 mousePosOnCanvasCoords, ParentNode[] selectedNodes )
@@ -132,7 +138,11 @@ namespace AmplifyShaderEditor
 			base.Move( delta, snap );
 			for ( int i = 0; i < m_nodesOnCommentary.Count; i++ )
 			{
-				m_nodesOnCommentary[ i ].Move( delta, snap );
+				if ( !m_nodesOnCommentary[ i ].Selected )
+				{
+					Undo.RecordObject( m_nodesOnCommentary[ i ], Constants.UndoMoveNodesId );
+					m_nodesOnCommentary[ i ].Move( delta, snap );
+				}
 			}
 		}
 
@@ -207,8 +217,9 @@ namespace AmplifyShaderEditor
 						if ( other.Depth < Depth )
 						{
 							other.RemoveNode( node );
+							addToNode = true;
 						}
-						addToNode = true;
+						
 					}
 				}
 
@@ -231,24 +242,44 @@ namespace AmplifyShaderEditor
 		public override void DrawProperties()
 		{
 			base.DrawProperties();
-			EditorGUI.BeginChangeCheck();
-			GUI.SetNextControlName( m_focusName );
-			m_titleText = EditorGUILayoutTextField( "Frame Title", m_titleText );
-			if ( EditorGUI.EndChangeCheck() )
+			NodeUtils.DrawPropertyGroup( ref m_propertiesFoldout, Constants.ParameterLabelStr,()=>
 			{
-				m_checkTitleText = true;
-			}
-			EditorGUI.BeginChangeCheck();
-			m_commentText = EditorGUILayoutTextField( CommentaryTitle, m_commentText );
-			if ( EditorGUI.EndChangeCheck() )
+				EditorGUI.BeginChangeCheck();
+				m_titleText = EditorGUILayoutTextField( "Frame Title", m_titleText );
+				if ( EditorGUI.EndChangeCheck() )
+				{
+					m_checkTitleText = true;
+				}
+				EditorGUI.BeginChangeCheck();
+				m_commentText = EditorGUILayoutTextField( CommentaryTitle, m_commentText );
+				if ( EditorGUI.EndChangeCheck() )
+				{
+					m_checkCommentText = true;
+				}
+
+				m_frameColor = EditorGUILayoutColorField( "Frame Color", m_frameColor );
+			} );
+			EditorGUILayout.HelpBox( InfoText, MessageType.Info );
+		}
+
+		public override void OnNodeDoubleClicked( Vector2 currentMousePos2D )
+		{
+			if ( currentMousePos2D.y - m_globalPosition.y > ( Constants.NODE_HEADER_HEIGHT + Constants.NODE_HEADER_EXTRA_HEIGHT ) * ContainerGraph.ParentWindow.CameraDrawInfo.InvertedZoom )
 			{
-				m_checkCommentText = true;
+				ContainerGraph.ParentWindow.ParametersWindow.IsMaximized = !ContainerGraph.ParentWindow.ParametersWindow.IsMaximized;
 			}
-			if ( m_focusOnTitle && Event.current.type == EventType.keyUp )
+			else
 			{
-				m_focusOnTitle = false;
-				EditorGUI.FocusTextInControl( m_focusName );
+				m_editPropertyNameMode = true;
+				m_focusOnTitle = true;
 			}
+		}
+
+		public override void OnNodeSelected( bool value )
+		{
+			base.OnNodeSelected( value );
+			if ( !value )
+				m_editPropertyNameMode = false;
 		}
 
 		public override void Draw( DrawInfo drawInfo )
@@ -285,7 +316,7 @@ namespace AmplifyShaderEditor
 				}
 
 				CalculatePositionAndVisibility( drawInfo );
-
+				
 				if ( !string.IsNullOrEmpty( m_titleText ) )
 				{
 					Rect titleRect = m_globalPosition;
@@ -295,7 +326,7 @@ namespace AmplifyShaderEditor
 				}
 
 				// Render Node
-				GUI.color = Constants.NodeBodyColor;
+				GUI.color = Constants.NodeBodyColor * m_frameColor;
 				GUI.Box( m_globalPosition, string.Empty, UIUtils.GetCustomStyle( CustomStyle.CommentaryBackground ) );
 
 				GUI.color = Color.white;
@@ -305,9 +336,12 @@ namespace AmplifyShaderEditor
 				commentArea.width *= 0.93f;
 				commentArea.x += 10 * drawInfo.InvertedZoom;
 
-				GUI.color = m_headerColor;
+				GUI.color = m_headerColor * m_frameColor;
 				m_headerPosition = m_globalPosition;
 				m_headerPosition.height = UIUtils.CurrentHeaderHeight;
+
+				m_auxHeaderPos = m_position;
+				m_auxHeaderPos.height = UIUtils.HeaderMaxHeight;
 
 				GUI.Box( m_headerPosition, string.Empty, UIUtils.GetCustomStyle( CustomStyle.NodeHeader ) );
 
@@ -316,11 +350,32 @@ namespace AmplifyShaderEditor
 				{
 					GUI.Box( m_globalPosition, string.Empty, UIUtils.GetCustomStyle( CustomStyle.NodeWindowOn ) );
 				}
-				EditorGUI.BeginChangeCheck();
-				m_commentText = EditorGUITextField( commentArea, string.Empty, m_commentText, UIUtils.GetCustomStyle( CustomStyle.CommentaryTitle ) );
-				if ( EditorGUI.EndChangeCheck() )
+
+				if ( ContainerGraph.LodLevel <= ParentGraph.NodeLOD.LOD3 )
 				{
-					m_checkCommentText = true;
+					EditorGUI.BeginChangeCheck();
+					{
+						GUI.SetNextControlName( m_focusName );
+						if ( m_editPropertyNameMode )
+						{
+							m_commentText = EditorGUITextField( commentArea, string.Empty, m_commentText, UIUtils.GetCustomStyle( CustomStyle.CommentaryTitle ) );
+							if ( Event.current.isKey && ( Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter ) )
+							{
+								m_editPropertyNameMode = false;
+
+								if( GUI.GetNameOfFocusedControl().Equals( m_focusName ))
+									GUIUtility.keyboardControl = 0;
+							}
+						}
+						else
+						{
+							EditorGUI.LabelField( commentArea, m_commentText , UIUtils.GetCustomStyle( CustomStyle.CommentaryTitle ) );
+						}
+					}
+					if ( EditorGUI.EndChangeCheck() )
+					{
+						m_checkCommentText = true;
+					}
 				}
 
 				if ( m_resizeIconTex == null )
@@ -328,9 +383,7 @@ namespace AmplifyShaderEditor
 					m_resizeIconTex = UIUtils.GetCustomStyle( CustomStyle.CommentaryResizeButton ).normal.background;
 				}
 
-
 				// RIGHT RESIZE BUTTON
-
 				m_resizeRightIconCoords = m_globalPosition;
 				m_resizeRightIconCoords.x = m_globalPosition.x + m_globalPosition.width - 1 - ( m_resizeIconTex.width + ResizeButtonPos.x ) * drawInfo.InvertedZoom;
 				m_resizeRightIconCoords.y = m_globalPosition.y + m_globalPosition.height - 2 - ( m_resizeIconTex.height + ResizeButtonPos.y ) * drawInfo.InvertedZoom;
@@ -338,6 +391,7 @@ namespace AmplifyShaderEditor
 				m_resizeRightIconCoords.height = m_resizeIconTex.height * drawInfo.InvertedZoom;
 
 				EditorGUIUtility.AddCursorRect( m_resizeRightIconCoords, MouseCursor.ResizeUpLeft );
+
 				if ( GUI.RepeatButton( m_resizeRightIconCoords, string.Empty, UIUtils.GetCustomStyle( CustomStyle.CommentaryResizeButton ) ) )
 				{
 					if ( !m_isResizingRight )
@@ -391,7 +445,9 @@ namespace AmplifyShaderEditor
 				m_resizeLeftIconCoords.width = m_resizeIconTex.width * drawInfo.InvertedZoom;
 				m_resizeLeftIconCoords.height = m_resizeIconTex.height * drawInfo.InvertedZoom;
 
+
 				EditorGUIUtility.AddCursorRect( m_resizeLeftIconCoords, MouseCursor.ResizeUpRight );
+
 				if ( GUI.RepeatButton( m_resizeLeftIconCoords, string.Empty, UIUtils.GetCustomStyle( CustomStyle.CommentaryResizeButtonInv ) ) )
 				{
 					if ( !m_isResizingLeft )
@@ -453,11 +509,24 @@ namespace AmplifyShaderEditor
 				}
 			}
 
+			// KEY UP is to prevent start writing the c key on comment when creating the node
+			if ( m_focusOnTitle && Event.current.type == EventType.keyUp )
+			{
+				m_focusOnTitle = false;
+				EditorGUI.FocusTextInControl( m_focusName );
+				TextEditor te = ( TextEditor ) GUIUtility.GetStateObject( typeof( TextEditor ), GUIUtility.keyboardControl );
+				if ( te != null )
+				{
+					te.SelectAll();
+				}
+			}
+
 		}
 
 		public void Focus()
 		{
 			m_focusOnTitle = true;
+			m_editPropertyNameMode = true;
 		}
 
 		public override void OnAfterDeserialize()
@@ -506,6 +575,22 @@ namespace AmplifyShaderEditor
 
 			if ( UIUtils.CurrentShaderVersion() > 5004 )
 				m_titleText = GetCurrentParam( ref nodeParams );
+
+			if ( UIUtils.CurrentShaderVersion() > 12002 )
+			{
+				string[] colorChannels = GetCurrentParam( ref nodeParams ).Split( IOUtils.VECTOR_SEPARATOR );
+				if ( colorChannels.Length == 4 )
+				{
+					m_frameColor.r = Convert.ToSingle( colorChannels[ 0 ] );
+					m_frameColor.g = Convert.ToSingle( colorChannels[ 1 ] );
+					m_frameColor.b = Convert.ToSingle( colorChannels[ 2 ] );
+					m_frameColor.a = Convert.ToSingle( colorChannels[ 3 ] );
+				}
+				else
+				{
+					UIUtils.ShowMessage( "Incorrect number of color values", MessageSeverity.Error );
+				}
+			}
 		}
 
 		public override void WriteToString( ref string nodeInfo, ref string connectionsInfo )
@@ -521,6 +606,7 @@ namespace AmplifyShaderEditor
 			}
 
 			IOUtils.AddFieldValueToString( ref nodeInfo, m_titleText );
+			IOUtils.AddFieldValueToString( ref nodeInfo, m_frameColor.r.ToString() + IOUtils.VECTOR_SEPARATOR + m_frameColor.g.ToString() + IOUtils.VECTOR_SEPARATOR + m_frameColor.b.ToString() + IOUtils.VECTOR_SEPARATOR + m_frameColor.a.ToString() );
 		}
 
 		public override void ResetNodeData()
@@ -549,6 +635,12 @@ namespace AmplifyShaderEditor
 				}
 			}
 			m_graphDepthAnalized = true;
+		}
+
+		public override Rect Position { get { return Event.current.alt ? m_position : m_auxHeaderPos; } }
+		public override bool Contains( Vector3 pos )
+		{
+			return Event.current.alt ? m_globalPosition.Contains( pos ) : ( m_headerPosition.Contains( pos ) || m_resizeRightIconCoords.Contains( pos ) || m_resizeLeftIconCoords.Contains( pos ) );
 		}
 	}
 }

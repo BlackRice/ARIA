@@ -15,7 +15,7 @@ namespace AmplifyShaderEditor
 			AddInputPort( WirePortDataType.FLOAT, false, "Occlusion" );
 			m_inputPorts[ 2 ].FloatInternalData = 1;
 			AddOutputPort( WirePortDataType.FLOAT3, "Out" );
-			m_errorMessageTypeIsError = false;
+			m_errorMessageTypeIsError = NodeMessageType.Warning;
 			m_errorMessageTooltip = "This node only returns correct information using a custom light model, otherwise returns 0";
 		}
 

@@ -9,7 +9,7 @@ namespace AmplifyShaderEditor
 {
 
 	[Serializable]
-	[NodeAttributes( "Grab Screen Color", "Surface Standard Inputs", "Grabed pixel color value from screen" )]
+	[NodeAttributes( "Grab Screen Color", "Camera And Screen", "Grabed pixel color value from screen" )]
 	public sealed class ScreenColorNode : PropertyNode
 	{
 		private readonly Color ReferenceHeaderColor = new Color( 2.67f, 1.0f, 0.5f, 1.0f );
@@ -56,8 +56,6 @@ namespace AmplifyShaderEditor
 		[SerializeField]
 		private float m_referenceWidth = -1;
 
-		private bool m_forceNodeUpdate = false;
-
 		public ScreenColorNode() : base() { }
 		public ScreenColorNode( int uniqueId, float x, float y, float width, float height ) : base( uniqueId, x, y, width, height ) { }
 
@@ -97,24 +95,7 @@ namespace AmplifyShaderEditor
 		public override void Draw( DrawInfo drawInfo )
 		{
 			base.Draw( drawInfo );
-
-			if ( m_forceNodeUpdate )
-			{
-				m_forceNodeUpdate = false;
-				if ( UIUtils.CurrentShaderVersion() > 22 )
-				{
-					m_referenceNode = UIUtils.GetNode( m_referenceNodeId ) as ScreenColorNode;
-					m_referenceArrayId = UIUtils.GetScreenColorNodeRegisterId( m_referenceNodeId );
-				}
-				else
-				{
-					m_referenceNode = UIUtils.GetScreenColorNode( m_referenceArrayId );
-					if ( m_referenceNode != null )
-					{
-						m_referenceNodeId = m_referenceNode.UniqueId;
-					}
-				}
-			}
+			
 			CheckReference();
 
 			if ( SoftValidReference )
@@ -418,7 +399,6 @@ namespace AmplifyShaderEditor
 				if ( m_referenceType == TexReferenceType.Instance )
 				{
 					UIUtils.UnregisterScreenColorNode( this );
-					m_forceNodeUpdate = true;
 				}
 
 				UpdateHeaderColor();
@@ -430,6 +410,26 @@ namespace AmplifyShaderEditor
 			base.WriteToString( ref nodeInfo, ref connectionsInfo );
 			IOUtils.AddFieldValueToString( ref nodeInfo, m_referenceType );
 			IOUtils.AddFieldValueToString( ref nodeInfo, ( ( m_referenceNode != null ) ? m_referenceNode.UniqueId : -1 ) );
+		}
+
+		public override void RefreshExternalReferences()
+		{
+			if ( m_referenceType == TexReferenceType.Instance )
+			{
+				if ( UIUtils.CurrentShaderVersion() > 22 )
+				{
+					m_referenceNode = UIUtils.GetNode( m_referenceNodeId ) as ScreenColorNode;
+					m_referenceArrayId = UIUtils.GetScreenColorNodeRegisterId( m_referenceNodeId );
+				}
+				else
+				{
+					m_referenceNode = UIUtils.GetScreenColorNode( m_referenceArrayId );
+					if ( m_referenceNode != null )
+					{
+						m_referenceNodeId = m_referenceNode.UniqueId;
+					}
+				}
+			}
 		}
 
 		public override string GetPropertyValStr()

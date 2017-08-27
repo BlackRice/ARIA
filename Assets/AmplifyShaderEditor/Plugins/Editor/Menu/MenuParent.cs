@@ -350,6 +350,7 @@ namespace AmplifyShaderEditor
 
 			GUI.enabled = guiEnabledBuffer;
 			GUI.color = colorBuffer;
+			
 		}
 
 		public void OnLostFocus()

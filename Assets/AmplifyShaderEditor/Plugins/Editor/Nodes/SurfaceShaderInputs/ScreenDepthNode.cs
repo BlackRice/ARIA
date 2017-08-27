@@ -5,7 +5,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Screen Depth", "Surface Standard Inputs", "Given a screen postion returns the depth of the scene to the object as seen by the camera" )]
+	[NodeAttributes( "Screen Depth", "Camera And Screen", "Given a screen postion returns the depth of the scene to the object as seen by the camera" )]
 	public sealed class ScreenDepthNode : ParentNode
 	{
 		[SerializeField]
@@ -49,9 +49,9 @@ namespace AmplifyShaderEditor
 			string viewSpace = m_viewSpaceInt == 0 ? "Eye" : "01";
 			string screenDepthInstruction = "Linear" + viewSpace + "Depth(UNITY_SAMPLE_DEPTH(tex2Dproj(_CameraDepthTexture,UNITY_PROJ_COORD(" + screenPos + "))))";
 
-			dataCollector.AddToLocalVariables( UniqueId, m_currentPrecisionType, WirePortDataType.FLOAT, m_vertexNameStr[ m_viewSpaceInt ] + UniqueId, screenDepthInstruction );
+			dataCollector.AddToLocalVariables( UniqueId, m_currentPrecisionType, WirePortDataType.FLOAT, m_vertexNameStr[ m_viewSpaceInt ] + OutputId, screenDepthInstruction );
 
-			return m_vertexNameStr[ m_viewSpaceInt ] + UniqueId;
+			return m_vertexNameStr[ m_viewSpaceInt ] + OutputId;
 		}
 
 		public override void ReadFromString( ref string[] nodeParams )

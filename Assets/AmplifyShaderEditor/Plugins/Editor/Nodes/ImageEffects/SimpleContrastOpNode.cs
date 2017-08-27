@@ -2,7 +2,6 @@
 // Copyright (c) Amplify Creations, Lda <info@amplify.pt>
 
 using UnityEngine;
-using UnityEditor;
 using System;
 
 namespace AmplifyShaderEditor
@@ -30,28 +29,22 @@ namespace AmplifyShaderEditor
 
 		void AddPorts()
 		{
-			AddInputPort( WirePortDataType.FLOAT, true, "Value" );
+			AddInputPort( WirePortDataType.FLOAT, false, "Value" );
 			AddInputPort( WirePortDataType.COLOR, false, "Contrast" );
 			AddOutputPort( WirePortDataType.COLOR, Constants.EmptyPortValue );
 		}
 
-		//public override void DrawProperties()
-		//{
-		//	base.DrawProperties();
-		//	EditorGUILayout.BeginVertical();
-		//	{
-		//		m_defaultContrast = EditorGUILayout.FloatField( InputTypeStr, m_defaultContrast );
-		//	}
-		//	EditorGUILayout.EndVertical();
-
-		//}
-
 		public override string GenerateShaderForOutput( int outputId, ref MasterNodeDataCollector dataCollector, bool ignoreLocalVar )
 		{
+			if ( m_outputPorts[ 0 ].IsLocalValue )
+				return m_outputPorts[ 0 ].LocalValue;
+
 			string contrastValue = m_inputPorts[ 0 ].IsConnected ? m_inputPorts[ 0 ].GeneratePortInstructions( ref dataCollector ) : m_defaultContrast.ToString();
 			string colorTarget = m_inputPorts[ 1 ].GeneratePortInstructions( ref dataCollector );
 			string result = dataCollector.AddFunctions( FunctionHeader, m_functionBody, contrastValue, colorTarget );
-			return CreateOutputLocalVariable( 0, result, ref dataCollector );
+			RegisterLocalVariable( 0, result, ref dataCollector, "simpleContrast" + OutputId );
+
+			return m_outputPorts[ 0 ].LocalValue;
 		}
 
 		public override void ReadFromString( ref string[] nodeParams )
@@ -60,11 +53,5 @@ namespace AmplifyShaderEditor
 			if ( UIUtils.CurrentShaderVersion() < 5004 )
 				m_defaultContrast = Convert.ToSingle( GetCurrentParam( ref nodeParams ) );
 		}
-
-		//public override void WriteToString( ref string nodeInfo, ref string connectionsInfo )
-		//{
-		//	base.WriteToString( ref nodeInfo, ref connectionsInfo );
-		//	IOUtils.AddFieldValueToString( ref nodeInfo, m_defaultContrast );
-		//}
 	}
 }

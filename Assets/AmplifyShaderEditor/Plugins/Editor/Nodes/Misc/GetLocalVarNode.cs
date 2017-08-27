@@ -8,14 +8,9 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Get Local Var", "Misc", "Use a registered local variable" )]
+	[NodeAttributes( "Get Local Var", "Miscellaneous", "Use a registered local variable" )]
 	public class GetLocalVarNode : ParentNode
 	{
-		private const float NodeButtonSizeX = 16;
-		private const float NodeButtonSizeY = 16;
-		private const float NodeButtonDeltaX = 5;
-		private const float NodeButtonDeltaY = 11;
-
 		[SerializeField]
 		private int m_referenceId = -1;
 
@@ -27,8 +22,6 @@ namespace AmplifyShaderEditor
 
 		[SerializeField]
 		private RegisterLocalVarNode m_currentSelected = null;
-
-		private bool m_forceNodeUpdate = false;
 
 		private int m_cachedPropertyId = -1;
 
@@ -96,37 +89,14 @@ namespace AmplifyShaderEditor
 		public override void Draw( DrawInfo drawInfo )
 		{
 			base.Draw( drawInfo );
-			if ( m_forceNodeUpdate )
-			{
-				m_forceNodeUpdate = false;
-				if ( UIUtils.CurrentShaderVersion() > 15 )
-				{
-					m_currentSelected = UIUtils.GetNode( m_nodeId ) as RegisterLocalVarNode;
-					m_referenceId = UIUtils.GetLocalVarNodeRegisterId( m_nodeId );
-				}
-				else
-				{
-					m_currentSelected = UIUtils.GetLocalVarNode( m_referenceId );
-					if ( m_currentSelected != null )
-					{
-						m_nodeId = m_currentSelected.UniqueId;
-					}
-				}
-
-				if ( m_currentSelected != null )
-				{
-					m_outputPorts[ 0 ].ChangeType( m_currentSelected.OutputPorts[ 0 ].DataType, false );
-				}
-			}
-
 
 			Rect rect = m_globalPosition;
-			rect.x = rect.x + ( NodeButtonDeltaX - 1 ) * drawInfo.InvertedZoom + 1;
-			rect.y = rect.y + NodeButtonDeltaY * drawInfo.InvertedZoom;
-			rect.width = NodeButtonSizeX * drawInfo.InvertedZoom;
-			rect.height = NodeButtonSizeY * drawInfo.InvertedZoom;
+			rect.x = rect.x + ( Constants.NodeButtonDeltaX - 1 ) * drawInfo.InvertedZoom + 1;
+			rect.y = rect.y + Constants.NodeButtonDeltaY * drawInfo.InvertedZoom;
+			rect.width = Constants.NodeButtonSizeX * drawInfo.InvertedZoom;
+			rect.height = Constants.NodeButtonSizeY * drawInfo.InvertedZoom;
 			EditorGUI.BeginChangeCheck();
-			m_referenceId = EditorGUIPopup( rect, m_referenceId, UIUtils.LocalVarNodeArr() , UIUtils.PropertyPopUp );
+			m_referenceId = EditorGUIPopup( rect, m_referenceId, UIUtils.LocalVarNodeArr(), UIUtils.PropertyPopUp );
 			if ( EditorGUI.EndChangeCheck() )
 			{
 				UpdateFromSelected();
@@ -146,7 +116,7 @@ namespace AmplifyShaderEditor
 					if ( newNode.UniqueId != m_nodeId )
 					{
 						m_currentSelected = null;
-						int count = UIUtils.LocalVarNodeAmount(); 
+						int count = UIUtils.LocalVarNodeAmount();
 						for ( int i = 0; i < count; i++ )
 						{
 							ParentNode node = UIUtils.GetLocalVarNode( i );
@@ -197,12 +167,12 @@ namespace AmplifyShaderEditor
 			}
 		}
 
-		public override void PropagateNodeData( NodeData nodeData , ref MasterNodeDataCollector dataCollector )
+		public override void PropagateNodeData( NodeData nodeData, ref MasterNodeDataCollector dataCollector )
 		{
 			base.PropagateNodeData( nodeData, ref dataCollector );
 			if ( m_currentSelected != null )
 			{
-				m_currentSelected.PropagateNodeData( nodeData , ref dataCollector );
+				m_currentSelected.PropagateNodeData( nodeData, ref dataCollector );
 			}
 		}
 
@@ -217,7 +187,6 @@ namespace AmplifyShaderEditor
 			{
 				m_referenceId = Convert.ToInt32( GetCurrentParam( ref nodeParams ) );
 			}
-			m_forceNodeUpdate = true;
 		}
 
 		public override void WriteToString( ref string nodeInfo, ref string connectionsInfo )
@@ -225,11 +194,34 @@ namespace AmplifyShaderEditor
 			base.WriteToString( ref nodeInfo, ref connectionsInfo );
 			IOUtils.AddFieldValueToString( ref nodeInfo, ( m_currentSelected != null ? m_currentSelected.UniqueId : -1 ) );
 		}
+
 		public override void OnNodeDoubleClicked( Vector2 currentMousePos2D )
 		{
 			if ( m_currentSelected != null )
 			{
 				UIUtils.FocusOnNode( m_currentSelected, 0, true );
+			}
+		}
+
+		public override void RefreshExternalReferences()
+		{
+			if ( UIUtils.CurrentShaderVersion() > 15 )
+			{
+				m_currentSelected = UIUtils.GetNode( m_nodeId ) as RegisterLocalVarNode;
+				m_referenceId = UIUtils.GetLocalVarNodeRegisterId( m_nodeId );
+			}
+			else
+			{
+				m_currentSelected = UIUtils.GetLocalVarNode( m_referenceId );
+				if ( m_currentSelected != null )
+				{
+					m_nodeId = m_currentSelected.UniqueId;
+				}
+			}
+
+			if ( m_currentSelected != null )
+			{
+				m_outputPorts[ 0 ].ChangeType( m_currentSelected.OutputPorts[ 0 ].DataType, false );
 			}
 		}
 	}

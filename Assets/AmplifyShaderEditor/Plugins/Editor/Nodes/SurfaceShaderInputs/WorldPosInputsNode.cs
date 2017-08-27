@@ -7,7 +7,7 @@ using UnityEngine;
 namespace AmplifyShaderEditor
 {
 	[System.Serializable]
-	[NodeAttributes( "World Position", "Surface Standard Inputs", "World space position" )]
+	[NodeAttributes( "World Position", "Surface Data", "World space position" )]
 	public sealed class WorldPosInputsNode : SurfaceShaderINParentNode
 	{
 		//[SerializeField]

@@ -11,7 +11,7 @@ namespace AmplifyShaderEditor
 		{
 			base.CommonInit( uniqueId );
 			AddOutputPort( WirePortDataType.FLOAT, "Out" );
-			m_errorMessageTypeIsError = false;
+			m_errorMessageTypeIsError = NodeMessageType.Warning;
 			m_errorMessageTooltip = "This node only returns correct information using a custom light model, otherwise returns 1";
 		}
 

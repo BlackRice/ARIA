@@ -3,9 +3,10 @@
 
 //https://www.shadertoy.com/view/XdS3RW
 //http://www.deepskycolors.com/archivo/2010/04/21/formulas-for-Photoshop-blending-modes.html
+//http://www.pegtop.net/delphi/articles/blendmodes/softlight.htm
 
 using UnityEngine;
-using UnityEditor;
+
 using System;
 
 namespace AmplifyShaderEditor
@@ -18,6 +19,7 @@ namespace AmplifyShaderEditor
 		Divide,
 		Difference,
 		Exclusion,
+		SoftLight,
 		HardLight,
 		HardMix,
 		Lighten,
@@ -36,9 +38,13 @@ namespace AmplifyShaderEditor
 	public class BlendOpsNode : ParentNode
 	{
 		private const string BlendOpsModeStr = "Blend Op";
+		private const string SaturateResultStr = "Saturate";
 
 		[SerializeField]
 		private BlendOps m_currentBlendOp = BlendOps.ColorBurn;
+
+		[SerializeField]
+		private WirePortDataType m_mainDataType = WirePortDataType.COLOR;
 
 		[SerializeField]
 		private bool m_saturate = true;
@@ -53,10 +59,56 @@ namespace AmplifyShaderEditor
 			m_autoWrapProperties = true;
 		}
 
+		public override void OnInputPortConnected( int portId, int otherNodeId, int otherPortId, bool activateNode = true )
+		{
+			base.OnInputPortConnected( portId, otherNodeId, otherPortId, activateNode );
+			UpdateConnection( portId );
+		}
+
+		public override void OnConnectedOutputNodeChanges( int inputPortId, int otherNodeId, int otherPortId, string name, WirePortDataType type )
+		{
+			base.OnConnectedOutputNodeChanges( inputPortId, otherNodeId, otherPortId, name, type );
+			UpdateConnection( inputPortId );
+		}
+
+		public override void OnInputPortDisconnected( int portId )
+		{
+			base.OnInputPortDisconnected( portId );
+			UpdateDisconnection( portId );
+		}
+
+		void UpdateConnection( int portId )
+		{
+			m_inputPorts[ portId ].MatchPortToConnection();
+			int otherPortId = ( portId + 1 ) % 2;
+			if ( m_inputPorts[ otherPortId ].IsConnected )
+			{
+				m_mainDataType = UIUtils.GetPriority( m_inputPorts[ 0 ].DataType ) > UIUtils.GetPriority( m_inputPorts[ 1 ].DataType ) ? m_inputPorts[ 0 ].DataType : m_inputPorts[ 1 ].DataType;
+			}
+			else
+			{
+				m_mainDataType = m_inputPorts[ portId ].DataType;
+				m_inputPorts[ otherPortId ].ChangeType( m_mainDataType, false );
+			}
+			m_outputPorts[ 0 ].ChangeType( m_mainDataType, false );
+		}
+
+		void UpdateDisconnection( int portId )
+		{
+			int otherPortId = ( portId + 1 ) % 2;
+			if ( m_inputPorts[ otherPortId ].IsConnected )
+			{
+				m_mainDataType = m_inputPorts[ otherPortId ].DataType;
+				m_inputPorts[ portId ].ChangeType( m_mainDataType, false );
+				m_outputPorts[ 0 ].ChangeType( m_mainDataType, false );
+			}
+		}
+
 		public override void DrawProperties()
 		{
 			base.DrawProperties();
 			m_currentBlendOp = ( BlendOps ) EditorGUILayoutEnumPopup( BlendOpsModeStr, m_currentBlendOp );
+			m_saturate = EditorGUILayoutToggle( SaturateResultStr, m_saturate );
 		}
 
 		public override string GenerateShaderForOutput( int outputId, ref MasterNodeDataCollector dataCollector, bool ignoreLocalvar )
@@ -66,98 +118,107 @@ namespace AmplifyShaderEditor
 
 			string src = m_inputPorts[ 0 ].GeneratePortInstructions( ref dataCollector );
 			string dst = m_inputPorts[ 1 ].GeneratePortInstructions( ref dataCollector );
-			
+			string srcLocalVar = "blendOpSrc" + OutputId;
+			string dstLocalVar = "blendOpDest" + OutputId;
+			dataCollector.AddLocalVariable( UniqueId, UIUtils.FinalPrecisionWirePortToCgType( m_currentPrecisionType, m_inputPorts[ 0 ].DataType ) + " " + srcLocalVar, src + ";" );
+			dataCollector.AddLocalVariable( UniqueId, UIUtils.FinalPrecisionWirePortToCgType( m_currentPrecisionType, m_inputPorts[ 1 ].DataType ) + " " + dstLocalVar, dst + ";" );
+
 			string result = string.Empty;
 			switch ( m_currentBlendOp )
 			{
 				case BlendOps.ColorBurn:
 				{
-					result = "( 1.0 - ( ( 1.0 - " + dst + ") / " + src + ") )";
+					result = "( 1.0 - ( ( 1.0 - " + dstLocalVar + ") / " + srcLocalVar + ") )";
 				}
 				break;
 				case BlendOps.ColorDodge:
 				{
-					result = "( " + dst + "/ ( 1.0 - " + src + " ) )";
+					result = "( " + dstLocalVar + "/ ( 1.0 - " + srcLocalVar + " ) )";
 				}
 				break;
 				case BlendOps.Darken:
 				{
-					result = "min( " + src + " , " + dst + " )";
+					result = "min( " + srcLocalVar + " , " + dstLocalVar + " )";
 				}
 				break;
 				case BlendOps.Divide:
 				{
-					result = "( " + dst + " / " + src + " )";
+					result = "( " + dstLocalVar + " / " + srcLocalVar + " )";
 				}
 				break;
 				case BlendOps.Difference:
 				{
-					result = "abs( " + src + " - " + dst + " )";
+					result = "abs( " + srcLocalVar + " - " + dstLocalVar + " )";
 				}
 				break;
 				case BlendOps.Exclusion:
 				{
-					result = "( 0.5 - 2.0 * ( " + src + " - 0.5 ) * ( " + dst + " - 0.5 ) )";
+					result = "( 0.5 - 2.0 * ( " + srcLocalVar + " - 0.5 ) * ( " + dstLocalVar + " - 0.5 ) )";
+				}
+				break;
+				case BlendOps.SoftLight:
+				{
+					result = string.Format( "2.0f*{0}*{1} + {0}*{0}*(1.0f - 2.0f*{1})", srcLocalVar, dstLocalVar );
 				}
 				break;
 				case BlendOps.HardLight:
 				{
-					result = " ( " + src + " > 0.5 ? ( 1.0 - ( 1.0 - 2.0 * ( " + src + " - 0.5 ) ) * ( 1.0 - " + dst + " ) ) : ( 2.0 * " + src + " * " + dst + " ) )";
+					result = " ( " + srcLocalVar + " > 0.5 ? ( 1.0 - ( 1.0 - 2.0 * ( " + srcLocalVar + " - 0.5 ) ) * ( 1.0 - " + dstLocalVar + " ) ) : ( 2.0 * " + srcLocalVar + " * " + dstLocalVar + " ) )";
 				}
 				break;
 				case BlendOps.HardMix:
 				{
-					result = " round( 0.5 * ( " + src + " + " + dst + " ) )";
+					result = " round( 0.5 * ( " + srcLocalVar + " + " + dstLocalVar + " ) )";
 				}
 				break;
 				case BlendOps.Lighten:
 				{
-					result = "	max( " + src + ", " + dst + " )";
+					result = "	max( " + srcLocalVar + ", " + dstLocalVar + " )";
 				}
 				break;
 				case BlendOps.LinearBurn:
 				{
-					result = "( " + src + " + " + dst + " - 1.0 )";
+					result = "( " + srcLocalVar + " + " + dstLocalVar + " - 1.0 )";
 				}
 				break;
 				case BlendOps.LinearDodge:
 				{
-					result = "( " + src + " + " + dst + " )";
+					result = "( " + srcLocalVar + " + " + dstLocalVar + " )";
 				}
 				break;
 				case BlendOps.LinearLight:
 				{
-					result = "( " + src + " > 0.5 ? ( " + dst + " + 2.0 * " + src + " - 1.0 ) : ( " + dst + " + 2.0 * ( " + src + " - 0.5 ) ) )";
+					result = "( " + srcLocalVar + " > 0.5 ? ( " + dstLocalVar + " + 2.0 * " + srcLocalVar + " - 1.0 ) : ( " + dstLocalVar + " + 2.0 * ( " + srcLocalVar + " - 0.5 ) ) )";
 				}
 				break;
 				case BlendOps.Multiply:
 				{
-					result = "( " + src + " * " + dst + " )";
+					result = "( " + srcLocalVar + " * " + dstLocalVar + " )";
 				}
 				break;
 				case BlendOps.Overlay:
 				{
-					result = "( " + dst + " > 0.5 ? ( 1.0 - ( 1.0 - 2.0 * ( " + dst + " - 0.5 ) ) * ( 1.0 - " + src + " ) ) : ( 2.0 * " + dst + " * " + src + " ) )";
+					result = "( " + dstLocalVar + " > 0.5 ? ( 1.0 - ( 1.0 - 2.0 * ( " + dstLocalVar + " - 0.5 ) ) * ( 1.0 - " + srcLocalVar + " ) ) : ( 2.0 * " + dstLocalVar + " * " + srcLocalVar + " ) )";
 				}
 				break;
 				case BlendOps.PinLight:
 				{
-					result = "( " + src + " > 0.5 ? max( " + dst + ", 2.0 * ( " + src + " - 0.5 ) ) : min( " + dst + ", 2.0 * " + src + " ) )";
+					result = "( " + srcLocalVar + " > 0.5 ? max( " + dstLocalVar + ", 2.0 * ( " + srcLocalVar + " - 0.5 ) ) : min( " + dstLocalVar + ", 2.0 * " + srcLocalVar + " ) )";
 				}
 				break;
 				case BlendOps.Subtract:
 				{
-					result = "( " + dst + " - " + src + " )";
+					result = "( " + dstLocalVar + " - " + srcLocalVar + " )";
 				}
 				break;
 				case BlendOps.Screen:
 				{
-					result = "( 1.0 - ( 1.0 - " + src + " ) * ( 1.0 - " + dst + " ) )";
+					result = "( 1.0 - ( 1.0 - " + srcLocalVar + " ) * ( 1.0 - " + dstLocalVar + " ) )";
 				}
 				break;
 				case BlendOps.VividLight:
 				{
-					result = "( " + src + " > 0.5 ? ( " + dst + " / ( ( 1.0 - " + src + " ) * 2.0 ) ) : ( 1.0 - ( ( ( 1.0 - " + dst + " ) * 0.5 ) / " + src + " ) ) )";
+					result = "( " + srcLocalVar + " > 0.5 ? ( " + dstLocalVar + " / ( ( 1.0 - " + srcLocalVar + " ) * 2.0 ) ) : ( 1.0 - ( ( ( 1.0 - " + dstLocalVar + " ) * 0.5 ) / " + srcLocalVar + " ) ) )";
 				}
 				break;
 			}

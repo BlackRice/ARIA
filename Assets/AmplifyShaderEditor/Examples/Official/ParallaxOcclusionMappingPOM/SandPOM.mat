@@ -98,6 +98,15 @@ Material:
         name: _Bias
       second: 0.61
     - first:
+        name: _CurvFix
+      second: 1
+    - first:
+        name: _CurvatureU
+      second: 0
+    - first:
+        name: _CurvatureV
+      second: 0
+    - first:
         name: _Float0
       second: 0.34
     - first:
@@ -129,7 +138,7 @@ Material:
       second: 0
     - first:
         name: __dirty
-      second: 1
+      second: 0
     m_Colors:
     - first:
         name: _Color

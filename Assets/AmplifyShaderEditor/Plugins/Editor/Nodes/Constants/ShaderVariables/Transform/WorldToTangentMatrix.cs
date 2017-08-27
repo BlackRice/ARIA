@@ -3,7 +3,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "World To Tangent Matrix", "Transform", "World to tangent transform matrix")]
+	[NodeAttributes( "World To Tangent Matrix", "Matrix Transform", "World to tangent transform matrix")]
 	public sealed class WorldToTangentMatrix : ParentNode
 	{
 		protected override void CommonInit( int uniqueId )

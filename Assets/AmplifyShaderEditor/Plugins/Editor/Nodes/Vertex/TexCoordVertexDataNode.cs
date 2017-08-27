@@ -49,6 +49,23 @@ namespace AmplifyShaderEditor
 			}
 		}
 
+		public override void Draw( DrawInfo drawInfo )
+		{
+			base.Draw( drawInfo );
+			Rect rect = m_globalPosition;
+			rect.x = rect.x + ( Constants.NodeButtonDeltaX - 1 ) * drawInfo.InvertedZoom + 1;
+			rect.y = rect.y + Constants.NodeButtonDeltaY * drawInfo.InvertedZoom;
+			rect.width = Constants.NodeButtonSizeX * drawInfo.InvertedZoom;
+			rect.height = Constants.NodeButtonSizeY * drawInfo.InvertedZoom;
+			EditorGUI.BeginChangeCheck();
+			m_texcoordSize = EditorGUIIntPopup( rect,  m_texcoordSize, Constants.AvailableUVSizesStr, Constants.AvailableUVSizes, UIUtils.PropertyPopUp );
+			if ( EditorGUI.EndChangeCheck() )
+			{
+				UpdateOutput();
+			}
+
+		}
+
 		private void UpdateOutput()
 		{
 			if ( m_texcoordSize == 3 )

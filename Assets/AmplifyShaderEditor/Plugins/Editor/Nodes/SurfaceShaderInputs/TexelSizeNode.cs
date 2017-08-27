@@ -5,7 +5,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Texel Size", "Surface Standard Inputs", "Texel Size for a given sampler" )]
+	[NodeAttributes( "Texel Size", "Textures", "Texel Size for a given texture object" )]
 	public sealed class TexelSizeNode : ParentNode
 	{
 		private readonly string[] Dummy = { string.Empty };
@@ -18,7 +18,6 @@ namespace AmplifyShaderEditor
 		[SerializeField]
 		private TexturePropertyNode m_inputReferenceNode = null;
 
-		private bool m_forceNodeUpdate = false;
 
 		private TexturePropertyNode m_referenceNode = null;
 
@@ -76,7 +75,7 @@ namespace AmplifyShaderEditor
 
 			if ( arr != null && arr.Length > 0 )
 			{
-				GUI.enabled = true && ( m_inputReferenceNode == null );
+				GUI.enabled = true && ( !m_inputPorts[0].IsConnected );
 				m_referenceSamplerId = EditorGUILayoutPopup( Constants.AvailableReferenceStr, m_referenceSamplerId, arr );
 			}
 			else
@@ -103,9 +102,9 @@ namespace AmplifyShaderEditor
 			m_inputPorts[ 0 ].GeneratePortInstructions( ref dataCollector );
 			string texelName = string.Empty;
 
-			if ( m_inputReferenceNode != null )
+			if ( m_inputPorts[ 0 ].IsConnected )
 			{
-				texelName = m_inputReferenceNode.PropertyName + "_TexelSize";
+				texelName = m_inputPorts[ 0 ].GeneratePortInstructions( ref dataCollector ) + "_TexelSize";
 			}
 			else if ( m_referenceNode != null )
 			{
@@ -135,31 +134,30 @@ namespace AmplifyShaderEditor
 		{
 			base.Draw( drawInfo );
 
-			if ( m_forceNodeUpdate )
-			{
-				m_forceNodeUpdate = false;
-				if ( UIUtils.CurrentShaderVersion() > 2404 )
-				{
-					m_referenceNode = UIUtils.GetNode( m_referenceNodeId ) as TexturePropertyNode;
-					m_referenceSamplerId = UIUtils.GetTexturePropertyNodeRegisterId( m_referenceNodeId );
-				}
-				else
-				{
-					m_referenceNode = UIUtils.GetTexturePropertyNode( m_referenceSamplerId );
-					if ( m_referenceNode != null )
-					{
-						m_referenceNodeId = m_referenceNode.UniqueId;
-					}
-				}
-				UpdateTitle();
-			}
-
 			if ( m_referenceNode == null && m_referenceNodeId > -1 )
 			{
 				m_referenceNodeId = -1;
 				m_referenceSamplerId = -1;
 				UpdateTitle();
 			}
+		}
+
+		public override void RefreshExternalReferences()
+		{
+			if ( UIUtils.CurrentShaderVersion() > 2404 )
+			{
+				m_referenceNode = UIUtils.GetNode( m_referenceNodeId ) as TexturePropertyNode;
+				m_referenceSamplerId = UIUtils.GetTexturePropertyNodeRegisterId( m_referenceNodeId );
+			}
+			else
+			{
+				m_referenceNode = UIUtils.GetTexturePropertyNode( m_referenceSamplerId );
+				if ( m_referenceNode != null )
+				{
+					m_referenceNodeId = m_referenceNode.UniqueId;
+				}
+			}
+			UpdateTitle();
 		}
 
 		public override void ReadFromString( ref string[] nodeParams )
@@ -173,7 +171,6 @@ namespace AmplifyShaderEditor
 			{
 				m_referenceSamplerId = Convert.ToInt32( GetCurrentParam( ref nodeParams ) );
 			}
-			m_forceNodeUpdate = true;
 		}
 
 		public override void WriteToString( ref string nodeInfo, ref string connectionsInfo )

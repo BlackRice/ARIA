@@ -8,7 +8,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Vector4", "Constants", "Vector4 property", null, KeyCode.Alpha4 )]
+	[NodeAttributes( "Vector4", "Constants And Properties", "Vector4 property", null, KeyCode.Alpha4 )]
 	public sealed class Vector4Node : PropertyNode
 	{
 		[SerializeField]

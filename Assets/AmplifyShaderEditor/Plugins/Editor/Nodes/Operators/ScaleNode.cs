@@ -8,7 +8,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Scale", "Operators", "Scales input by a float factor" )]
+	[NodeAttributes( "Scale", "Math Operators", "Scales input value by a float factor" )]
 	public sealed class ScaleNode : ParentNode
 	{
 		private const string ScaleFactorStr = "Scale";

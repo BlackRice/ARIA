@@ -8,7 +8,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Float", "Constants", "Float property", null, KeyCode.Alpha1 )]
+	[NodeAttributes( "Float", "Constants And Properties", "Float property", null, KeyCode.Alpha1 )]
 	public sealed class RangedFloatNode : PropertyNode
 	{
 		private const int OriginalFontSize = 11;

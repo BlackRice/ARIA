@@ -4,7 +4,7 @@ using UnityEngine;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Wire Node", "Misc", "Wire Node", null, KeyCode.None, false )]
+	[NodeAttributes( "Wire Node", "Miscellaneous", "Wire Node", null, KeyCode.None, false )]
 	public sealed class WireNode : ParentNode
 	{
 		private bool m_markedToDelete = false;
@@ -209,13 +209,13 @@ namespace AmplifyShaderEditor
 		{
 			if ( !m_inputPorts[ 0 ].IsConnected )
 			{
-				if ( !UIUtils.InputPortReference.IsValid || UIUtils.InputPortReference.IsValid && UIUtils.InputPortReference.NodeId != UniqueId )
+				if ( !m_containerGraph.ParentWindow.WireReferenceUtils.InputPortReference.IsValid || m_containerGraph.ParentWindow.WireReferenceUtils.InputPortReference.IsValid && m_containerGraph.ParentWindow.WireReferenceUtils.InputPortReference.NodeId != UniqueId )
 					ContainerGraph.MarkWireNodeSequence( this, true );
 			}
 
 			if ( !m_outputPorts[ 0 ].IsConnected )
 			{
-				if ( !UIUtils.OutputPortReference.IsValid || UIUtils.OutputPortReference.IsValid && UIUtils.OutputPortReference.NodeId != UniqueId )
+				if ( !m_containerGraph.ParentWindow.WireReferenceUtils.OutputPortReference.IsValid || m_containerGraph.ParentWindow.WireReferenceUtils.OutputPortReference.IsValid && m_containerGraph.ParentWindow.WireReferenceUtils.OutputPortReference.NodeId != UniqueId )
 					ContainerGraph.MarkWireNodeSequence( this, false );
 			}
 		}

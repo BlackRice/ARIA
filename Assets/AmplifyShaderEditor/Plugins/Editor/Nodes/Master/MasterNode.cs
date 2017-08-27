@@ -208,16 +208,20 @@ namespace AmplifyShaderEditor
 					m_gpuInstanceOnTex = UIUtils.GPUInstancedOnTexture;
 				}
 
-				if ( UIUtils.IsInstancedShader() )
-				{
-					m_masterNodeIconCoords = m_globalPosition;
-					m_masterNodeIconCoords.x += m_globalPosition.width - 5 - m_gpuInstanceOffTex.width * drawInfo.InvertedZoom;
-					m_masterNodeIconCoords.y += m_headerPosition.height;
-					m_masterNodeIconCoords.width = m_gpuInstanceOffTex.width * drawInfo.InvertedZoom;
-					m_masterNodeIconCoords.height = m_gpuInstanceOffTex.height * drawInfo.InvertedZoom;
-					GUI.DrawTexture( m_masterNodeIconCoords, m_gpuInstanceOffTex );
-				}
+				//if ( UIUtils.IsInstancedShader() )
+				//{
+				//	DrawInstancedIcon( drawInfo );
+				//}
 			}
+		}
+		protected void DrawInstancedIcon( DrawInfo drawInfo )
+		{
+			m_masterNodeIconCoords = m_globalPosition;
+			m_masterNodeIconCoords.x += m_globalPosition.width - 5 - m_gpuInstanceOffTex.width * drawInfo.InvertedZoom;
+			m_masterNodeIconCoords.y += m_headerPosition.height;
+			m_masterNodeIconCoords.width = m_gpuInstanceOffTex.width * drawInfo.InvertedZoom;
+			m_masterNodeIconCoords.height = m_gpuInstanceOffTex.height * drawInfo.InvertedZoom;
+			GUI.DrawTexture( m_masterNodeIconCoords, m_gpuInstanceOffTex );
 		}
 		//public override void DrawProperties()
 		//{
@@ -409,7 +413,7 @@ namespace AmplifyShaderEditor
 			set
 			{
 				m_shaderName = value;
-				m_content.text = value;
+				m_content.text = GenerateClippedTitle( value );
 				m_sizeIsDirty = true;
 			}
 		}

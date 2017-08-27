@@ -8,7 +8,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Texture Array", "Textures", "Texture Array", KeyCode.None, true, 0, int.MaxValue, typeof( Texture2DArray ) )]
+	[NodeAttributes( "Texture Array", "Textures", "Texture Array fetches a texture from a texture2DArray asset file given a index value", KeyCode.None, true, 0, int.MaxValue, typeof( Texture2DArray ) )]
 	public class TextureArrayNode : PropertyNode
 	{
 		[SerializeField]
@@ -26,7 +26,7 @@ namespace AmplifyShaderEditor
 		[SerializeField]
 		private MipType m_mipMode = MipType.Auto;
 
-		private readonly string[] m_mipOptions = { "Auto", "Mip Level" };
+		private readonly string[] m_mipOptions = { "Auto", "Mip Level", "Derivative" };
 
 		private TextureArrayNode m_referenceSampler = null;
 
@@ -39,10 +39,13 @@ namespace AmplifyShaderEditor
 		[SerializeField]
 		private bool m_autoUnpackNormals = false;
 
+		private InputPort m_texPort;
 		private InputPort m_uvPort;
 		private InputPort m_indexPort;
 		private InputPort m_lodPort;
 		private InputPort m_normalPort;
+		private InputPort m_ddxPort;
+		private InputPort m_ddyPort;
 
 		private OutputPort m_colorPort;
 
@@ -67,17 +70,25 @@ namespace AmplifyShaderEditor
 			base.CommonInit( uniqueId );
 			AddOutputColorPorts( "RGBA" );
 			m_colorPort = m_outputPorts[ 0 ];
-			AddInputPort( WirePortDataType.FLOAT2, false, "UV" );
-			AddInputPort( WirePortDataType.FLOAT, false, "Index" );
-			AddInputPort( WirePortDataType.FLOAT, false, "Level" );
-			AddInputPort( WirePortDataType.FLOAT, false, NormalScaleStr );
-			m_inputPorts[ 2 ].Visible = false;
-			m_uvPort = m_inputPorts[ 0 ];
-			m_indexPort = m_inputPorts[ 1 ];
-			m_lodPort = m_inputPorts[ 2 ];
-			m_normalPort = m_inputPorts[ 3 ];
+			AddInputPort( WirePortDataType.SAMPLER2D, false, "Tex", -1, MasterNodePortCategory.Fragment, 6 );
+			AddInputPort( WirePortDataType.FLOAT2, false, "UV", -1, MasterNodePortCategory.Fragment, 0 );
+			AddInputPort( WirePortDataType.FLOAT, false, "Index", -1, MasterNodePortCategory.Fragment, 1 );
+			AddInputPort( WirePortDataType.FLOAT, false, "Level", -1, MasterNodePortCategory.Fragment, 2 );
+			AddInputPort( WirePortDataType.FLOAT, false, NormalScaleStr, -1, MasterNodePortCategory.Fragment, 3 );
+			AddInputPort( WirePortDataType.FLOAT2, false, "DDX", -1, MasterNodePortCategory.Fragment, 4 );
+			AddInputPort( WirePortDataType.FLOAT2, false, "DDY", - 1, MasterNodePortCategory.Fragment, 5 );
+			m_texPort = m_inputPorts[ 0 ];
+			m_uvPort = m_inputPorts[ 1 ];
+			m_indexPort = m_inputPorts[ 2 ];
+			m_lodPort = m_inputPorts[ 3 ];
+			m_lodPort.Visible = false;
+			m_normalPort = m_inputPorts[ 4 ];
 			m_normalPort.Visible = m_autoUnpackNormals;
 			m_normalPort.FloatInternalData = 1.0f;
+			m_ddxPort = m_inputPorts[ 5 ];
+			m_ddxPort.Visible = false;
+			m_ddyPort = m_inputPorts[ 6 ];
+			m_ddyPort.Visible = false;
 			m_insideSize.Set( 110, 110 + 5 );
 			m_drawPrecisionUI = false;
 			m_currentParameterType = PropertyType.Property;
@@ -141,13 +152,29 @@ namespace AmplifyShaderEditor
 				m_mipMode = newMipMode;
 			}
 
-			if ( m_mipMode == MipType.MipLevel )
+			switch ( m_mipMode )
 			{
-				m_lodPort.Visible = true;
-			}
-			else
-			{
+				case MipType.Auto:
 				m_lodPort.Visible = false;
+				m_ddxPort.Visible = false;
+				m_ddyPort.Visible = false;
+				break;
+				case MipType.MipLevel:
+				m_lodPort.Visible = true;
+				m_ddxPort.Visible = false;
+				m_ddyPort.Visible = false;
+				break;
+				case MipType.MipBias:
+				case MipType.Derivative:
+				m_ddxPort.Visible = true;
+				m_ddyPort.Visible = true;
+				m_lodPort.Visible = false;
+				break;
+			}
+
+			if ( m_ddxPort.Visible )
+			{
+				EditorGUILayout.HelpBox( "Warning: Derivative Mip Mode only works on some platforms (D3D11 XBOXONE GLES3 GLCORE)", MessageType.Warning );
 			}
 
 			if ( !m_lodPort.IsConnected && m_lodPort.Visible )
@@ -159,6 +186,8 @@ namespace AmplifyShaderEditor
 			{
 				m_indexPort.FloatInternalData = EditorGUILayoutFloatField( "Index", m_indexPort.FloatInternalData );
 			}
+
+
 		}
 
 		public override void DrawMainPropertyBlock()
@@ -212,6 +241,7 @@ namespace AmplifyShaderEditor
 
 				m_referenceArrayId = EditorGUILayoutPopup( Constants.AvailableReferenceStr, m_referenceArrayId, arr );
 				GUI.enabled = guiEnabledBuffer;
+
 				ShowDefaults();
 
 				DrawSamplerOptions();
@@ -536,7 +566,7 @@ namespace AmplifyShaderEditor
 			if ( m_referenceType == TexReferenceType.Instance && m_referenceSampler != null )
 				instanced = true;
 
-			if ( !instanced )
+			if ( !(instanced || m_texPort.IsConnected) )
 				base.GenerateShaderForOutput( outputId, ref dataCollector, ignoreLocalvar );
 
 			string level = string.Empty;
@@ -548,6 +578,13 @@ namespace AmplifyShaderEditor
 			if ( isVertex && !m_lodPort.Visible )
 				level = "0";
 
+			string propertyName = string.Empty;
+			if( instanced )
+				propertyName = m_referenceSampler.PropertyName;
+			else if ( m_texPort.IsConnected)
+				propertyName = m_texPort.GeneratePortInstructions( ref dataCollector );
+			else
+				propertyName = PropertyName;
 
 			string uvs = string.Empty;
 			if ( m_uvPort.IsConnected )
@@ -557,9 +594,9 @@ namespace AmplifyShaderEditor
 			else
 			{
 				if ( isVertex )
-					uvs = TexCoordVertexDataNode.GenerateVertexUVs( ref dataCollector, UniqueId, m_uvSet, ( instanced ? m_referenceSampler.PropertyName : PropertyName ) );
+					uvs = TexCoordVertexDataNode.GenerateVertexUVs( ref dataCollector, UniqueId, m_uvSet, propertyName );
 				else
-					uvs = TexCoordVertexDataNode.GenerateFragUVs( ref dataCollector, UniqueId, m_uvSet, ( instanced ? m_referenceSampler.PropertyName : PropertyName ) );
+					uvs = TexCoordVertexDataNode.GenerateFragUVs( ref dataCollector, UniqueId, m_uvSet, propertyName );
 			}
 			string index = m_indexPort.GeneratePortInstructions( ref dataCollector );
 
@@ -568,13 +605,6 @@ namespace AmplifyShaderEditor
 			{
 				connectionNumber += m_outputPorts[ i ].ConnectionCount;
 			}
-
-			string propertyName = string.Empty;
-			if ( !instanced )
-				propertyName = PropertyName;
-			else
-				propertyName = m_referenceSampler.PropertyName;
-
 
 			string m_normalMapUnpackMode = "";
 			if ( m_autoUnpackNormals )
@@ -603,7 +633,23 @@ namespace AmplifyShaderEditor
 				}
 			}
 
-			string result = "UNITY_SAMPLE_TEX2DARRAY" + ( m_lodPort.Visible || isVertex ? "_LOD" : "" ) + "(" + propertyName + ", float3(" + uvs + ", " + index + ") " + ( m_lodPort.Visible || isVertex ? ", " + level : "" ) + " )";
+			string result = string.Empty;
+
+			//CAREFUL mipbias here means derivative (this needs index changes)
+			if (m_mipMode == MipType.MipBias)
+			{
+				dataCollector.UsingArrayDerivatives = true;
+				result = "ASE_SAMPLE_TEX2DARRAY_GRAD(" + propertyName + ", float3(" + uvs + ", " + index + "), " + m_ddxPort.GeneratePortInstructions(ref dataCollector) + ", "+ m_ddyPort.GeneratePortInstructions( ref dataCollector ) + " )";
+			} else if( m_lodPort.Visible || isVertex )
+			{
+				result = "UNITY_SAMPLE_TEX2DARRAY_LOD(" + propertyName + ", float3(" + uvs + ", " + index + "), "+ level + " )";
+			}
+			else
+			{
+				result = "UNITY_SAMPLE_TEX2DARRAY" + ( m_lodPort.Visible || isVertex ? "_LOD" : "" ) + "(" + propertyName + ", float3(" + uvs + ", " + index + ") " + ( m_lodPort.Visible || isVertex ? ", " + level : "" ) + " )";
+			}
+
+			//string result = "UNITY_SAMPLE_TEX2DARRAY" + ( m_lodPort.Visible || isVertex ? "_LOD" : "" ) + "(" + propertyName + ", float3(" + uvs + ", " + index + ") " + ( m_lodPort.Visible || isVertex ? ", " + level : "" ) + " )";
 			if ( m_autoUnpackNormals )
 				result = string.Format( m_normalMapUnpackMode, result );
 
@@ -612,12 +658,6 @@ namespace AmplifyShaderEditor
 			RegisterLocalVariable( 0, result, ref dataCollector, "texArray" + OutputId );
 			//dataCollector.AddToLocalVariables( UniqueId, "float" + ( m_autoUnpackNormals ? "3" : "4" ) + " texArray" + m_uniqueId + " = " + result + ";" );
 			return GetOutputVectorItem( 0, outputId, m_outputPorts[ 0 ].LocalValue );
-			//}
-			//else
-			//{
-
-			//	return GetOutputVectorItem( 0, outputId, result );
-			//}
 		}
 
 		public override string GetPropertyValue()
@@ -656,6 +696,8 @@ namespace AmplifyShaderEditor
 			ConfigureOutputPorts();
 
 			m_lodPort.Visible = ( m_mipMode == MipType.MipLevel );
+			m_ddxPort.Visible = ( m_mipMode == MipType.MipBias ); //not really bias, it's derivative
+			m_ddyPort.Visible = ( m_mipMode == MipType.MipBias ); //not really bias, it's derivative
 
 			UpdateHeaderColor();
 
@@ -749,7 +791,15 @@ namespace AmplifyShaderEditor
 				m_referenceSampler = UIUtils.GetTextureArrayNode( m_referenceArrayId );
 
 				if ( m_referenceSampler == null )
+				{
+					m_texPort.Locked = false;
 					m_referenceArrayId = -1;
+				}
+				else
+					m_texPort.Locked = true;
+			} else
+			{
+				m_texPort.Locked = false;
 			}
 
 			return m_referenceSampler != null;
@@ -807,6 +857,14 @@ namespace AmplifyShaderEditor
 			base.Destroy();
 			m_defaultTextureArray = null;
 			m_materialTextureArray = null;
+
+			m_texPort = null;
+			m_uvPort = null;
+			m_indexPort = null;
+			m_lodPort = null;
+			m_normalPort = null;
+			m_ddxPort = null;
+			m_ddyPort = null;
 
 			if ( m_referenceType == TexReferenceType.Object )
 			{

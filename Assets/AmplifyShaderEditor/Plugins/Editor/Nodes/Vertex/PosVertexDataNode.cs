@@ -52,34 +52,42 @@ namespace AmplifyShaderEditor
 		}
 		public override string GenerateShaderForOutput( int outputId, ref MasterNodeDataCollector dataCollector, bool ignoreLocalVar )
 		{
-			if ( dataCollector.PortCategory == MasterNodePortCategory.Vertex || dataCollector.PortCategory == MasterNodePortCategory.Tessellation )
-			{
-				string vertexVar = base.GenerateShaderForOutput( 0, ref dataCollector, ignoreLocalVar );
-				if ( outputId != 0 )
-				{
-					return GetOutputVectorItem( 0, outputId, vertexVar );
-				}
-				else if ( m_sizeOption == 0 )
-				{
-					vertexVar += ".xyz";
-				}
+			if ( dataCollector.PortCategory == MasterNodePortCategory.Fragment || dataCollector.PortCategory == MasterNodePortCategory.Debug )
+				base.GenerateShaderForOutput( outputId, ref dataCollector, ignoreLocalVar );
 
-				return vertexVar;
-			}
-			else
-			{
+			WirePortDataType sizeType = m_sizeOption == 0 ? WirePortDataType.FLOAT3 : WirePortDataType.FLOAT4;
 
-				string vertexVar = GeneratorUtils.GenerateVertexPositionOnFrag( ref dataCollector, UniqueId, m_currentPrecisionType );
-				if ( outputId != 0 )
-				{
-					return GetOutputVectorItem( 0, outputId, vertexVar );
-				}
-				else if ( m_sizeOption == 0 )
-				{
-					vertexVar += ".xyz";
-				}
-				return GetOutputVectorItem( 0, outputId, vertexVar );
-			}
+			string vertexPosition = GeneratorUtils.GenerateVertexPosition( ref dataCollector, UniqueId, m_currentPrecisionType, sizeType );
+			return GetOutputVectorItem( 0, outputId, vertexPosition );
+
+			//if ( dataCollector.PortCategory == MasterNodePortCategory.Vertex || dataCollector.PortCategory == MasterNodePortCategory.Tessellation )
+			//{
+			//	string vertexVar = base.GenerateShaderForOutput( 0, ref dataCollector, ignoreLocalVar );
+			//	if ( outputId != 0 )
+			//	{
+			//		return GetOutputVectorItem( 0, outputId, vertexVar );
+			//	}
+			//	else if ( m_sizeOption == 0 )
+			//	{
+			//		vertexVar += ".xyz";
+			//	}
+
+			//	return vertexVar;
+			//}
+			//else
+			//{
+
+			//	string vertexVar = GeneratorUtils.GenerateVertexPositionOnFrag( ref dataCollector, UniqueId, m_currentPrecisionType );
+			//	if ( outputId != 0 )
+			//	{
+			//		return GetOutputVectorItem( 0, outputId, vertexVar );
+			//	}
+			//	else if ( m_sizeOption == 0 )
+			//	{
+			//		vertexVar += ".xyz";
+			//	}
+			//	return GetOutputVectorItem( 0, outputId, vertexVar );
+			//}
 		}
 
 		public override void ReadFromString( ref string[] nodeParams )

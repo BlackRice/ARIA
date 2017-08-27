@@ -299,9 +299,9 @@ namespace AmplifyShaderEditor
 			if ( !m_extensibleInputPorts )
 				return;
 
-			if ( m_previouslyDragging != UIUtils.OutputPortReference.IsValid && Event.current.type == EventType.layout && UIUtils.OutputPortReference.NodeId != UniqueId )
+			if ( m_previouslyDragging != m_containerGraph.ParentWindow.WireReferenceUtils.OutputPortReference.IsValid && Event.current.type == EventType.layout && m_containerGraph.ParentWindow.WireReferenceUtils.OutputPortReference.NodeId != UniqueId )
 			{
-				if ( UIUtils.OutputPortReference.IsValid )
+				if ( m_containerGraph.ParentWindow.WireReferenceUtils.OutputPortReference.IsValid )
 				{
 					m_beforePreviewCount = 2;
 					for ( int i = 2; i < m_inputPorts.Count; i++ )
@@ -337,7 +337,7 @@ namespace AmplifyShaderEditor
 						UpdateEmptyInputPorts( false );
 				}
 
-				m_previouslyDragging = UIUtils.OutputPortReference.IsValid;
+				m_previouslyDragging = m_containerGraph.ParentWindow.WireReferenceUtils.OutputPortReference.IsValid;
 			}
 
 			if ( Event.current.type == EventType.layout )
@@ -397,7 +397,7 @@ namespace AmplifyShaderEditor
 			if ( !m_extensibleInputPorts )
 				return;
 
-			if ( !UIUtils.OutputPortReference.IsValid )
+			if ( !m_containerGraph.ParentWindow.WireReferenceUtils.OutputPortReference.IsValid )
 			{
 				if( recordUndo )
 				{

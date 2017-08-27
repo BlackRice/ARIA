@@ -1,11 +1,11 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using System;
 
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Matrix From Vectors", "Misc", "Matrix From Vectors" )]
+	[NodeAttributes( "Matrix From Vectors", "Matrix Operators", "Matrix From Vectors" )]
 	public sealed class MatrixFromVectors : ParentNode
 	{
 		[SerializeField]

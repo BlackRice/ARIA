@@ -25,6 +25,13 @@ namespace AmplifyShaderEditor
 		SAMPLERCUBE = 1 << 13
 	}
 
+	public enum VariableQualifiers
+	{
+		In = 0,
+		Out,
+		InOut
+	}
+
 	[System.Serializable]
 	public class WirePort
 	{

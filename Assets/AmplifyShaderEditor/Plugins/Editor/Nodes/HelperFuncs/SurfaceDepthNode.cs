@@ -5,7 +5,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Surface Depth", "Generic", "Returns the surface view depth" )]
+	[NodeAttributes( "Surface Depth", "Surface Data", "Returns the surface view depth" )]
 	public sealed class SurfaceDepthNode : ParentNode
 	{
 		[SerializeField]

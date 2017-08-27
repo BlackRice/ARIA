@@ -12,6 +12,7 @@ namespace AmplifyShaderEditor
 		{
 			base.CommonInit( uniqueId );
 			ChangeOutputProperties( 0, "RGBA", WirePortDataType.COLOR );
+			m_previewShaderGUID = "43f5d3c033eb5044e9aeb40241358349";
 		}
 
 		public override string GenerateShaderForOutput( int outputId, ref MasterNodeDataCollector dataCollector, bool ignoreLocalvar )

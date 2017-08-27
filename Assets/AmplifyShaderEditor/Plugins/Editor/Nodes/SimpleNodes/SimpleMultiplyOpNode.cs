@@ -7,7 +7,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Multiply", "Operators", "Simple multiplication of two variables", null, KeyCode.M )]
+	[NodeAttributes( "Multiply", "Math Operators", "Multiplication of two or more values ( A * B * .. )\nIt also handles Matrices multiplication", null, KeyCode.M )]
 	public sealed class SimpleMultiplyOpNode : DynamicTypeNode
 	{
 		private int m_cachedPropertyId = -1;

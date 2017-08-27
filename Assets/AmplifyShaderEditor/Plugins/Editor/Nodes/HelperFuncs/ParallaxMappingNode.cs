@@ -5,7 +5,7 @@ using System;
 namespace AmplifyShaderEditor
 {
     [Serializable]
-    [NodeAttributes( "Parallax Mapping", "Generic", "Calculates offseted UVs for parallax mapping" )]
+    [NodeAttributes( "Parallax Mapping", "UV Coordinates", "Calculates offseted UVs for parallax mapping" )]
     public sealed class ParallaxMappingNode : ParentNode
     {
         private enum ParallaxType { Normal, Planar }

@@ -8,7 +8,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Int", "Constants", "Int property", null, KeyCode.Alpha0 )]
+	[NodeAttributes( "Int", "Constants And Properties", "Int property", null, KeyCode.Alpha0 )]
 	public sealed class IntNode : PropertyNode
 	{
 		[SerializeField]

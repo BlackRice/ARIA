@@ -31,11 +31,6 @@ namespace AmplifyShaderEditor
 	[Serializable]
 	public class PropertyNode : ParentNode
 	{
-		private const float NodeButtonSizeX = 16;
-		private const float NodeButtonSizeY = 16;
-		private const float NodeButtonDeltaX = 5;
-		private const float NodeButtonDeltaY = 11;
-
 		private const string IsPropertyStr = "Is Property";
 		private const string PropertyNameStr = "Property Name";
 		private const string PropertyInspectorStr = "Name";
@@ -264,6 +259,7 @@ namespace AmplifyShaderEditor
 			}
 		}
 
+		protected virtual void OnAtrributesChanged() { }
 		void DrawAttributesAddRemoveButtons()
 		{
 			if ( m_availableAttribsArr == null )
@@ -281,6 +277,7 @@ namespace AmplifyShaderEditor
 			{
 				m_selectedAttribs.Add( 0 );
 				m_visibleAttribsFoldout = true;
+				OnAtrributesChanged();
 			}
 
 			//Remove port
@@ -289,6 +286,7 @@ namespace AmplifyShaderEditor
 				if ( attribCount > 0 )
 				{
 					m_selectedAttribs.RemoveAt( attribCount - 1 );
+					OnAtrributesChanged();
 				}
 			}
 		}
@@ -302,7 +300,15 @@ namespace AmplifyShaderEditor
 			{
 				for ( int i = 0; i < attribCount; i++ )
 				{
-					m_selectedAttribs[ i ] = EditorGUILayoutPopup( m_selectedAttribs[ i ], m_availableAttribsArr );
+					EditorGUI.BeginChangeCheck();
+					{
+						m_selectedAttribs[ i ] = EditorGUILayoutPopup( m_selectedAttribs[ i ], m_availableAttribsArr );
+					}
+					if ( EditorGUI.EndChangeCheck() )
+					{
+						OnAtrributesChanged();
+					}
+
 					EditorGUILayout.BeginHorizontal();
 					GUILayout.Label( " " );
 					// Add After
@@ -312,6 +318,7 @@ namespace AmplifyShaderEditor
 						{
 							m_selectedAttribs.Insert( i, m_selectedAttribs[ i ] );
 							actionAllowed = false;
+							OnAtrributesChanged();
 						}
 					}
 
@@ -329,6 +336,7 @@ namespace AmplifyShaderEditor
 				if ( deleteItem > -1 )
 				{
 					m_selectedAttribs.RemoveAt( deleteItem );
+					OnAtrributesChanged();
 				}
 			}
 		}
@@ -517,7 +525,8 @@ namespace AmplifyShaderEditor
 				if ( Event.current.isKey && ( Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter ) )
 				{
 					m_editPropertyNameMode = false;
-					GUIUtility.keyboardControl = 0;
+					if ( GUI.GetNameOfFocusedControl().Equals( m_uniqueName ) )
+						GUIUtility.keyboardControl = 0;
 				}
 			}
 			else
@@ -562,10 +571,10 @@ namespace AmplifyShaderEditor
 			if ( m_freeType )
 			{
 				Rect rect = m_globalPosition;
-				rect.x = rect.x + ( NodeButtonDeltaX - 1 ) * drawInfo.InvertedZoom + 1;
-				rect.y = rect.y + NodeButtonDeltaY * drawInfo.InvertedZoom;
-				rect.width = NodeButtonSizeX * drawInfo.InvertedZoom;
-				rect.height = NodeButtonSizeY * drawInfo.InvertedZoom;
+				rect.x = rect.x + ( Constants.NodeButtonDeltaX - 1 ) * drawInfo.InvertedZoom + 1;
+				rect.y = rect.y + Constants.NodeButtonDeltaY * drawInfo.InvertedZoom;
+				rect.width = Constants.NodeButtonSizeX * drawInfo.InvertedZoom;
+				rect.height = Constants.NodeButtonSizeY * drawInfo.InvertedZoom;
 
 				PropertyType parameterType = ( PropertyType ) EditorGUIEnumPopup( rect, m_currentParameterType, UIUtils.PropertyPopUp );
 				if ( parameterType != m_currentParameterType )
@@ -643,6 +652,7 @@ namespace AmplifyShaderEditor
 				break;
 				case PropertyType.InstancedProperty:
 				{
+					dataCollector.AddToPragmas( UniqueId, IOUtils.InstancedPropertiesHeader );
 					dataCollector.AddToProperties( UniqueId, GetPropertyValue(), OrderIndex );
 					dataCollector.AddToInstancedProperties( UniqueId, GetInstancedPropertyValue(), OrderIndex );
 				}
@@ -709,7 +719,7 @@ namespace AmplifyShaderEditor
 
 		public virtual string GetPropertyValue() { return string.Empty; }
 
-		public virtual string GetInstancedPropertyValue()
+		public string GetInstancedPropertyValue()
 		{
 			return string.Format( IOUtils.InstancedPropertiesElement, UIUtils.FinalPrecisionWirePortToCgType( m_currentPrecisionType, m_outputPorts[ 0 ].DataType ), m_propertyName );
 		}

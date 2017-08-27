@@ -5,7 +5,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Debug Switch", "Misc", "Hard Switch between any of its input ports" )]
+	[NodeAttributes( "Debug Switch", "Logical Operators", "Hard Switch between any of its input ports" )]
 	public class SwitchNode : ParentNode
 	{
 		private const string Info = "This is a Debug node which only generates the source for the selected port. This means that no properties are generated for other ports and information might be lost.";

@@ -8,7 +8,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Matrix4X4", "Constants", "Matrix4X4 property" )]
+	[NodeAttributes( "Matrix4X4", "Constants And Properties", "Matrix4X4 property" )]
 	public sealed class Matrix4X4Node : PropertyNode
 	{
 		[SerializeField]

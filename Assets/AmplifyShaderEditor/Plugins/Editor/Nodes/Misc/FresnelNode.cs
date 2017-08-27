@@ -9,7 +9,7 @@ using UnityEngine;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Fresnel", "Misc", "Simple Fresnel effect" )]
+	[NodeAttributes( "Fresnel", "Surface Data", "Simple Fresnel effect" )]
 	public sealed class FresnelNode : ParentNode
 	{
 		private const string WorldDirVarStr = "worldViewDir";

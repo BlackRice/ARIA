@@ -7,7 +7,7 @@ using UnityEngine;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "World Normal", "Surface Standard Inputs", "Per pixel world normal vector" )]
+	[NodeAttributes( "World Normal", "Surface Data", "Per pixel world normal vector, accepts a <b>Normal</b> vector in tangent space (ie: normalmap)" )]
 	public sealed class WorldNormalVector : ParentNode
 	{
 		private const string NormalVecValStr = "newWorldNormal";
@@ -93,9 +93,9 @@ namespace AmplifyShaderEditor
 					dataCollector.AddToVertexLocalVariables(UniqueId, "float3 normalWorld = UnityObjectToWorldNormal( "+ Constants.VertexShaderInputStr + ".normal );" );
 					dataCollector.AddToVertexLocalVariables( UniqueId, "float4 tangentWorld = float4( UnityObjectToWorldDir( " + Constants.VertexShaderInputStr + ".tangent.xyz ), " + Constants.VertexShaderInputStr + ".tangent.w );" );
 					dataCollector.AddToVertexLocalVariables( UniqueId, "float3x3 tangentToWorld = CreateTangentToWorldPerVertex( normalWorld, tangentWorld.xyz, tangentWorld.w );" );
-					dataCollector.AddToVertexLocalVariables( UniqueId, "float3 tangentNormal" + UniqueId + " = " + inputTangent+";" );
-					dataCollector.AddToVertexLocalVariables( UniqueId, "float3 modWorldtangent" + UniqueId + " = (tangentToWorld[0] * tangentNormal" + UniqueId + ".x + tangentToWorld[1] * tangentNormal" + UniqueId + ".y + tangentToWorld[2] * tangentNormal" + UniqueId + ".z);" );
-					return GetOutputVectorItem( 0, outputId, "modWorldtangent" + UniqueId );
+					dataCollector.AddToVertexLocalVariables( UniqueId, "float3 tangentNormal" + OutputId + " = " + inputTangent+";" );
+					dataCollector.AddToVertexLocalVariables( UniqueId, "float3 modWorldtangent" + OutputId + " = (tangentToWorld[0] * tangentNormal" + OutputId + ".x + tangentToWorld[1] * tangentNormal" + OutputId + ".y + tangentToWorld[2] * tangentNormal" + OutputId + ".z);" );
+					return GetOutputVectorItem( 0, outputId, "modWorldtangent" + OutputId );
 				}
 				else
 				{

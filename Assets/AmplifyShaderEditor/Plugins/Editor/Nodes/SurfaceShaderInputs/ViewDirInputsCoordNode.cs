@@ -13,7 +13,7 @@ namespace AmplifyShaderEditor
 	}
 
 	[Serializable]
-	[NodeAttributes( "View Dir", "Surface Standard Inputs", "View direction vector" )]
+	[NodeAttributes( "View Dir", "Camera And Screen", "View direction vector, you can select between <b>World</b> space or <b>Tangent</b> space" )]
 	public sealed class ViewDirInputsCoordNode : SurfaceShaderINParentNode
 	{
 		private const string SpaceStr = "Space";

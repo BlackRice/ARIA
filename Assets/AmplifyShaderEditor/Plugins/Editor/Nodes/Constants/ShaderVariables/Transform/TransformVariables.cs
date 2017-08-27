@@ -26,7 +26,7 @@ namespace AmplifyShaderEditor
 	}
 
 	[Serializable]
-	[NodeAttributes( "Common Transform Matrices", "Transform", "All Transformation types" )]
+	[NodeAttributes( "Common Transform Matrices", "Matrix Transform", "All Transformation types" )]
 	public sealed class TransformVariables : ShaderVariablesNode
 	{
 		[SerializeField]

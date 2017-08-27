@@ -17,7 +17,7 @@ namespace AmplifyShaderEditor
 	}
 
 	[Serializable]
-	[NodeAttributes( "Fog And Ambient Colors", "Fog And Ambient", "Fog and Ambient colors" )]
+	[NodeAttributes( "Fog And Ambient Colors", "Light", "Fog and Ambient colors" )]
 	public sealed class FogAndAmbientColorsNode : ShaderVariablesNode
 	{
 		[SerializeField]

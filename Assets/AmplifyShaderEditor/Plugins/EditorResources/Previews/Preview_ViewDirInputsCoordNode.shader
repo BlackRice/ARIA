@@ -1,4 +1,4 @@
-﻿Shader "Hidden/WorldPosInputsNode"
+Shader "Hidden/WorldPosInputsNode"
 {
 	SubShader
 	{
@@ -46,7 +46,7 @@
 						float2 tuvs;
 						float tf = ( 1 - sqrt( 1 - tr ) ) / tr;
 
-						float3 tangent = normalize(float3( 1-tf, tp.y*0.01, tp.x ));
+						float3 tangent = normalize(float3( (1-tf)*2, tp.y*0.01, tp.x ));
 						float3 worldPos = mul(unity_ObjectToWorld, vertexPos).xyz;
 						fixed3 worldNormal = UnityObjectToWorldNormal(normal);
 						fixed3 worldTangent = UnityObjectToWorldDir(tangent);

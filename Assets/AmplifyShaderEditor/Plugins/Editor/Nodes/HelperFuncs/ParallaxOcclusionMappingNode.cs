@@ -5,7 +5,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Parallax Occlusion Mapping", "Generic", "Calculates offseted UVs for parallax occlusion mapping" )]
+	[NodeAttributes( "Parallax Occlusion Mapping", "UV Coordinates", "Calculates offseted UVs for parallax occlusion mapping" )]
 	public sealed class ParallaxOcclusionMappingNode : ParentNode
 	{
 		[SerializeField]

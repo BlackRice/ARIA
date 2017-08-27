@@ -10,6 +10,7 @@ namespace AmplifyShaderEditor
 	{
 		[SerializeField]
 		private string m_uniqueName;
+
 		private bool m_editPropertyNameMode = false;
 		[SerializeField]
 		private string m_propertyInspectorName = "Triplanar Sampler";
@@ -248,7 +249,7 @@ namespace AmplifyShaderEditor
 				SetDelayedMaterialMode( ContainerGraph.CurrentMaterial);
 
 			if ( m_nodeAttribs != null )
-				m_uniqueName = m_nodeAttribs.Name + UniqueId;
+				m_uniqueName = m_nodeAttribs.Name + OutputId;
 
 			ConfigurePorts();
 
@@ -267,12 +268,14 @@ namespace AmplifyShaderEditor
 
 			//UIUtils.UnregisterPropertyNode( m_botTexture );
 			//UIUtils.UnregisterTexturePropertyNode( m_botTexture );
-
-			m_topTexture.Destroy();
+			if( m_topTexture != null )
+				m_topTexture.Destroy();
 			m_topTexture = null;
-			m_midTexture.Destroy();
+			if ( m_midTexture != null )
+				m_midTexture.Destroy();
 			m_midTexture = null;
-			m_botTexture.Destroy();
+			if ( m_botTexture != null )
+				m_botTexture.Destroy();
 			m_botTexture = null;
 
 			m_tempTopDefaultTexture = null;
@@ -760,9 +763,9 @@ namespace AmplifyShaderEditor
 				IOUtils.CloseFunctionBody( ref normalTriplanar );
 
 				string call = dataCollector.AddFunctions( m_functionNormalCall, normalTriplanar, texTop, texMid, texBot, pos, norm, falloff, tilling, ( isVertex ? "1" : "0" ) );
-				dataCollector.AddToLocalVariables( dataCollector.PortCategory, UniqueId, "float3 worldTriplanarNormal" + UniqueId + " = " + call + ";" );
-				dataCollector.AddToLocalVariables( dataCollector.PortCategory, UniqueId, "float3 tanTriplanarNormal" + UniqueId + " = mul( " + worldToTangent + ", worldTriplanarNormal" + UniqueId + " );" );
-				return GetOutputVectorItem( 0, outputId, "tanTriplanarNormal" + UniqueId );
+				dataCollector.AddToLocalVariables( dataCollector.PortCategory, UniqueId, "float3 worldTriplanarNormal" + OutputId + " = " + call + ";" );
+				dataCollector.AddToLocalVariables( dataCollector.PortCategory, UniqueId, "float3 tanTriplanarNormal" + OutputId + " = mul( " + worldToTangent + ", worldTriplanarNormal" + OutputId + " );" );
+				return GetOutputVectorItem( 0, outputId, "tanTriplanarNormal" + OutputId );
 			} else
 			{
 				string samplingTriplanar = string.Empty;
@@ -794,8 +797,8 @@ namespace AmplifyShaderEditor
 				}
 
 				string call = dataCollector.AddFunctions( m_functionSamplingCall, samplingTriplanar, texTop, texMid, texBot, pos, norm, falloff, tilling, ( isVertex ? "1" : "0") );
-				dataCollector.AddToLocalVariables( dataCollector.PortCategory, UniqueId, "float4 triplanar" + UniqueId + " = " + call + ";" );
-				return GetOutputVectorItem( 0, outputId, "triplanar" + UniqueId );
+				dataCollector.AddToLocalVariables( dataCollector.PortCategory, UniqueId, "float4 triplanar" + OutputId + " = " + call + ";" );
+				return GetOutputVectorItem( 0, outputId, "triplanar" + OutputId );
 			}
 		}
 

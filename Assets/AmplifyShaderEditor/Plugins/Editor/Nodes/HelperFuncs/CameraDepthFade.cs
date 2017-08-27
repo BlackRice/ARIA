@@ -5,7 +5,7 @@ using System;
 namespace AmplifyShaderEditor
 {
 	[Serializable]
-	[NodeAttributes( "Camera Depth Fade", "Generic", "Outputs a 0 - 1 gradient representing the distance between the surface of this object and camera near plane" )]
+	[NodeAttributes( "Camera Depth Fade", "Camera And Screen", "Outputs a 0 - 1 gradient representing the distance between the surface of this object and camera near plane" )]
 	public sealed class CameraDepthFade : ParentNode
 	{
 		protected override void CommonInit( int uniqueId )
@@ -26,8 +26,8 @@ namespace AmplifyShaderEditor
 
 			if ( dataCollector.PortCategory == MasterNodePortCategory.Vertex || dataCollector.PortCategory == MasterNodePortCategory.Tessellation )
 			{
-				dataCollector.AddVertexInstruction( "float cameraDepthFade" + UniqueId + " = (( -UnityObjectToViewPos( " + Constants.VertexShaderInputStr + ".vertex.xyz ).z -_ProjectionParams.y - " + offset + " ) / " + distance + ");", UniqueId );
-				return "cameraDepthFade" + UniqueId;
+				dataCollector.AddVertexInstruction( "float cameraDepthFade" + OutputId + " = (( -UnityObjectToViewPos( " + Constants.VertexShaderInputStr + ".vertex.xyz ).z -_ProjectionParams.y - " + offset + " ) / " + distance + ");", UniqueId );
+				return "cameraDepthFade" + OutputId;
 			}
 
 			dataCollector.AddToIncludes( UniqueId, Constants.UnityShaderVariables );
@@ -39,8 +39,8 @@ namespace AmplifyShaderEditor
 			//string distance = m_inputPorts[ 0 ].GeneratePortInstructions( ref dataCollector );
 			//string offset = m_inputPorts[ 1 ].GeneratePortInstructions( ref dataCollector );
 
-			dataCollector.AddToLocalVariables( UniqueId, "float cameraDepthFade" + UniqueId + " = (( " + Constants.InputVarStr + ".eyeDepth -_ProjectionParams.y - "+ offset + " ) / " + distance + ");" );
-			return "cameraDepthFade" + UniqueId;
+			dataCollector.AddToLocalVariables( UniqueId, "float cameraDepthFade" + OutputId + " = (( " + Constants.InputVarStr + ".eyeDepth -_ProjectionParams.y - "+ offset + " ) / " + distance + ");" );
+			return "cameraDepthFade" + OutputId;
 		}
 	}
 }
